@@ -22,13 +22,19 @@ export interface RegisterPayload {
   displayName: string;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
 const authService = {
   async login(email: string, password: string): Promise<AuthResponse> {
-    const { data } = await api.post<AuthResponse>('/auth/login', {
+    const { data: res } = await api.post<ApiResponse<AuthResponse>>('/auth/login', {
       email,
       password,
     } satisfies LoginPayload);
-    return data;
+    return res.data;
   },
 
   async register(
@@ -36,12 +42,12 @@ const authService = {
     password: string,
     displayName: string,
   ): Promise<AuthResponse> {
-    const { data } = await api.post<AuthResponse>('/auth/register', {
+    const { data: res } = await api.post<ApiResponse<AuthResponse>>('/auth/register', {
       email,
       password,
       displayName,
     } satisfies RegisterPayload);
-    return data;
+    return res.data;
   },
 
   async logout(): Promise<void> {
@@ -56,8 +62,8 @@ const authService = {
   },
 
   async me(): Promise<AuthResponse['user']> {
-    const { data } = await api.get<AuthResponse['user']>('/auth/me');
-    return data;
+    const { data: res } = await api.get<ApiResponse<AuthResponse['user']>>('/auth/me');
+    return res.data;
   },
 };
 

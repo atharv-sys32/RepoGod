@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { useAuthStore } from '@/store/auth.store';
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -12,7 +11,7 @@ const api = axios.create({
 // Request interceptor — attach JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
+    const token = localStorage.getItem('rg_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,7 +25,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
+      localStorage.removeItem('rg_token');
+      localStorage.removeItem('rg_user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
