@@ -74,7 +74,7 @@ jobs:
           node-version: 20
       - name: Install
         working-directory: frontend
-        run: npm ci
+        run: npm install
       - name: Type Check
         working-directory: frontend
         run: npx tsc --noEmit
