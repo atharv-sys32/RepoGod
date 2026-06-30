@@ -11,14 +11,10 @@ export interface AuthResponse {
   };
 }
 
-export interface LoginPayload {
+interface BackendAuthData {
+  accessToken: string;
+  refreshToken: string;
   email: string;
-  password: string;
-}
-
-export interface RegisterPayload {
-  email: string;
-  password: string;
   displayName: string;
 }
 
@@ -28,13 +24,25 @@ interface ApiResponse<T> {
   data: T;
 }
 
+function mapLoginResponse(d: BackendAuthData): AuthResponse {
+  return {
+    token: d.accessToken,
+    user: {
+      id: d.email,           // backend doesn't return id, use email as stable identifier
+      email: d.email,
+      displayName: d.displayName,
+      createdAt: new Date().toISOString(), // backend doesn't return createdAt
+    },
+  };
+}
+
 const authService = {
   async login(email: string, password: string): Promise<AuthResponse> {
-    const { data: res } = await api.post<ApiResponse<AuthResponse>>('/auth/login', {
+    const { data: res } = await api.post<ApiResponse<BackendAuthData>>('/auth/login', {
       email,
       password,
-    } satisfies LoginPayload);
-    return res.data;
+    });
+    return mapLoginResponse(res.data);
   },
 
   async register(
@@ -42,12 +50,12 @@ const authService = {
     password: string,
     displayName: string,
   ): Promise<AuthResponse> {
-    const { data: res } = await api.post<ApiResponse<AuthResponse>>('/auth/register', {
+    const { data: res } = await api.post<ApiResponse<BackendAuthData>>('/auth/register', {
       email,
       password,
       displayName,
-    } satisfies RegisterPayload);
-    return res.data;
+    });
+    return mapLoginResponse(res.data);
   },
 
   async logout(): Promise<void> {
@@ -62,8 +70,8 @@ const authService = {
   },
 
   async me(): Promise<AuthResponse['user']> {
-    const { data: res } = await api.get<ApiResponse<AuthResponse['user']>>('/auth/me');
-    return res.data;
+    const { data: res } = await api.get<ApiResponse<BackendAuthData>>('/auth/me');
+    return mapLoginResponse(res.data).user;
   },
 };
 
