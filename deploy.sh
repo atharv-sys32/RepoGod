@@ -14,7 +14,7 @@ REPO="${GITHUB_REPOSITORY:-repo}"
 REGISTRY="ghcr.io"
 
 # Docker Compose file (assumes the same file is present on the EC2 instance)
-COMPOSE_FILE="docker-compose.yml"
+COMPOSE_FILE="docker-compose.prod.yml"
 
 # ----------------------------------------------------------------------
 # Authenticate to GitHub Container Registry

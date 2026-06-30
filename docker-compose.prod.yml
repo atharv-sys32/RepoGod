@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: repogod-postgres
+    environment:
+      POSTGRES_DB: repogod
+      POSTGRES_USER: repogod
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-repogod_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repogod"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: repogod-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend-spring:
+    image: ghcr.io/atharv-sys32/repogod-spring:latest
+    container_name: repogod-spring
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/repogod
+      SPRING_DATASOURCE_USERNAME: repogod
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-repogod_secret}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      FASTAPI_BASE_URL: http://backend-fastapi:8000
+      JWT_SECRET: ${JWT_SECRET:-repogod-jwt-secret-change-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend-fastapi:
+    image: ghcr.io/atharv-sys32/repogod-fastapi:latest
+    container_name: repogod-fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://repogod:${POSTGRES_PASSWORD:-repogod_secret}@postgres:5432/repogod
+      REDIS_URL: redis://redis:6379
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+    volumes:
+      - repo_storage:/app/repos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/atharv-sys32/repogod-frontend:latest
+    container_name: repogod-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend-spring
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: repogod-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend-spring
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  repo_storage:
