@@ -1,6 +1,6 @@
 # AWS EC2 Deployment Guide
 
-Deploying RepoGod to an AWS EC2 instance is fully automated using the provided `deploy.sh` script.
+Deploying RepoGod to an AWS EC2 instance is fully automated using the provided `deploy.sh` script, which now pulls directly from your GitHub repository.
 
 ## Step 1: Launch an EC2 Instance
 1. Go to your AWS Console and launch a new EC2 Instance.
@@ -26,9 +26,9 @@ From your local machine, run the deploy script:
 ```
 
 ### What the script does:
-1. Automatically copies all your local code to the EC2 server (ignoring node_modules, build folders, etc.).
-2. SSHs into the server and installs Docker & Docker Compose if they aren't installed.
-3. Sets up a default `.env` file.
+1. SSHs into the server and installs `git`, `docker`, and `docker-compose` if they aren't already installed.
+2. Clones the `RepoGod` repository directly from GitHub (or pulls the latest changes if it already exists).
+3. Sets up a default `.env` file from the example template.
 4. Builds all images and starts the PostgreSQL, Redis, FastAPI, Spring Boot, and React/Nginx containers.
 
 ## Step 3: Add Your Gemini API Key

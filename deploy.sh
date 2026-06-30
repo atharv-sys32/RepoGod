@@ -11,37 +11,50 @@ fi
 
 TARGET=$1
 PEM_FILE=$2
-PROJECT_DIR=$(pwd)
+REPO_URL="https://github.com/atharv-sys32/RepoGod.git"
 
 echo "🚀 Starting deployment to $TARGET..."
 
-# 1. Sync files to EC2 (Excluding node_modules, build folders, etc. via .gitignore)
-echo "📦 Syncing project files to EC2..."
-rsync -avz --exclude-from='.gitignore' --exclude='.git' -e "ssh -i $PEM_FILE -o StrictHostKeyChecking=no" "$PROJECT_DIR/" "$TARGET:~/RepoGod/"
-
-# 2. SSH into EC2, install Docker if missing, and run Docker Compose
-echo "⚙️  Setting up server and starting Docker containers..."
-ssh -i "$PEM_FILE" -o StrictHostKeyChecking=no "$TARGET" << 'EOF'
+# SSH into EC2, install Docker & Git, clone/pull repo, and run Docker Compose
+echo "⚙️  Setting up server, fetching code, and starting Docker containers..."
+ssh -i "$PEM_FILE" -o StrictHostKeyChecking=no "$TARGET" << EOF
     set -e
+
+    # Update package list
+    sudo apt-get update -y
+
+    # Install Git if not present
+    if ! command -v git &> /dev/null; then
+        echo "📦 Installing Git..."
+        sudo apt-get install -y git
+    fi
 
     # Install Docker if not present (Targeting Ubuntu/Debian)
     if ! command -v docker &> /dev/null; then
         echo "🐳 Installing Docker..."
-        sudo apt-get update -y
         sudo apt-get install -y ca-certificates curl
         sudo install -m 0755 -d /etc/apt/keyrings
         sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
         sudo chmod a+r /etc/apt/keyrings/docker.asc
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+          \$(. /etc/os-release && echo "\$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         sudo apt-get update -y
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
         # Add user to docker group
-        sudo usermod -aG docker $USER
+        sudo usermod -aG docker \$USER
     fi
 
-    cd ~/RepoGod
+    # Clone or Pull the repository
+    if [ ! -d "RepoGod" ]; then
+        echo "📥 Cloning repository from GitHub..."
+        git clone $REPO_URL
+        cd RepoGod
+    else
+        echo "📥 Pulling latest changes from GitHub..."
+        cd RepoGod
+        git pull origin master
+    fi
 
     # Set up .env if it doesn't exist
     if [ ! -f .env ]; then
