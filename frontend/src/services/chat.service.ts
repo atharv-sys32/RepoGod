@@ -43,60 +43,125 @@ export interface ChatStreamParams {
 }
 
 const chatService = {
-  streamChat(params: ChatStreamParams, handlers: Omit<ChatStreamHandlers, 'close'>): ChatStreamHandlers {
+  async streamChat(params: ChatStreamParams, handlers: Omit<ChatStreamHandlers, 'close'>): Promise<ChatStreamHandlers> {
     const token = localStorage.getItem('rg_token');
     const searchParams = new URLSearchParams({
       workspaceId: params.workspaceId,
-      prompt: params.prompt,
+      content: params.prompt,
     });
     if (params.repositoryId) searchParams.set('repositoryId', params.repositoryId);
     if (params.conversationId) searchParams.set('conversationId', params.conversationId);
-    if (token) searchParams.set('token', token);
 
     const url = `/api/v1/chat/stream?${searchParams.toString()}`;
-    const eventSource = new EventSource(url);
+    const abortController = new AbortController();
 
-    eventSource.onmessage = (event) => {
-      try {
-        const parsed = JSON.parse(event.data) as SSEEvent;
-        handlers.onEvent?.(parsed);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Accept: 'text/event-stream',
+        },
+        signal: abortController.signal,
+      });
 
-        switch (parsed.type) {
-          case 'content_delta': {
-            const delta = parsed.data as ContentDeltaData;
-            handlers.onMessage?.(delta.text);
-            break;
-          }
-          case 'planner_step': {
-            const step = parsed.data as PlannerStepData;
-            handlers.onPlannerStep?.(step);
-            break;
-          }
-          case 'error': {
-            handlers.onError?.(String(parsed.data));
-            eventSource.close();
-            break;
-          }
-          case 'done':
-          case 'message_stop': {
-            handlers.onDone?.();
-            eventSource.close();
-            break;
-          }
-        }
-      } catch {
-        handlers.onError?.('Failed to parse SSE event');
+      if (!response.ok) {
+        handlers.onError?.(`Connection error: ${response.status}`);
+        return { ...handlers, close: () => abortController.abort() };
       }
-    };
 
-    eventSource.onerror = () => {
-      handlers.onError?.('Connection error');
-      eventSource.close();
-    };
+      const reader = response.body?.getReader();
+      if (!reader) {
+        handlers.onError?.('Response body not available');
+        return { ...handlers, close: () => abortController.abort() };
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentEvent = 'message';
+      let finished = false;
+
+      const read = () => {
+        if (finished) return;
+        reader.read().then(({ done, value }) => {
+          if (done) return;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === '[DONE]') {
+                handlers.onDone?.();
+                finished = true;
+                return;
+              }
+              if (!dataStr) continue;
+
+              switch (currentEvent) {
+                case 'metadata':
+                  try {
+                    const meta = JSON.parse(dataStr);
+                    handlers.onEvent?.({ type: 'message_start', data: meta });
+                  } catch { /* skip */ }
+                  break;
+                case 'chunk':
+                  handlers.onMessage?.(dataStr);
+                  break;
+                case 'error':
+                  handlers.onError?.(dataStr);
+                  abortController.abort();
+                  return;
+                case 'done':
+                case 'message_stop':
+                  handlers.onDone?.();
+                  return;
+                default:
+                  // Fallback: parse as JSON SSEEvent
+                  try {
+                    const parsed = JSON.parse(dataStr) as SSEEvent;
+                    handlers.onEvent?.(parsed);
+                    if (parsed.type === 'content_delta') {
+                      const text = (parsed.data as ContentDeltaData)?.text ?? '';
+                      if (text) handlers.onMessage?.(text);
+                    } else if (parsed.type === 'planner_step') {
+                      handlers.onPlannerStep?.(parsed.data as PlannerStepData);
+                    } else if (parsed.type === 'done' || parsed.type === 'message_stop') {
+                      handlers.onDone?.();
+                      return;
+                    } else if (parsed.type === 'error') {
+                      handlers.onError?.(String(parsed.data));
+                      abortController.abort();
+                      return;
+                    }
+                  } catch { /* skip */ }
+                  break;
+              }
+              currentEvent = 'message';
+            }
+          }
+
+          read();
+        }).catch((err) => {
+          if (!finished && err.name !== 'AbortError') {
+            handlers.onError?.('Connection error');
+          }
+        });
+      };
+
+      read();
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        handlers.onError?.('Connection error');
+      }
+    }
 
     return {
       ...handlers,
-      close: () => eventSource.close(),
+      close: () => abortController.abort(),
     };
   },
 };

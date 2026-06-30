@@ -29,7 +29,7 @@ export function useChatStream({
   const streamRef = useRef<{ close: () => void } | null>(null);
 
   const sendMessage = useCallback(
-    (prompt: string) => {
+    async (prompt: string) => {
       if (isStreaming) return;
 
       // Add user message immediately
@@ -53,7 +53,7 @@ export function useChatStream({
       setIsStreaming(true);
       setError(null);
 
-      const stream = chatService.streamChat(
+      const stream = await chatService.streamChat(
         {
           workspaceId,
           repositoryId,
@@ -62,7 +62,6 @@ export function useChatStream({
         },
         {
           onEvent: (event) => {
-            // Handle conversation ID from first event
             if (
               event.type === 'message_start' &&
               typeof event.data === 'object' &&
