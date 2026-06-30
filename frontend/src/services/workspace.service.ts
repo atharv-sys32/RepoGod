@@ -18,10 +18,16 @@ export interface CreateWorkspacePayload {
   repositoryUrl?: string;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
 const workspaceService = {
   async getWorkspaces(): Promise<Workspace[]> {
-    const { data } = await api.get<Workspace[]>('/workspaces');
-    return data;
+    const { data: res } = await api.get<ApiResponse<Workspace[]>>('/workspaces');
+    return res.data;
   },
 
   async createWorkspace(
@@ -32,21 +38,21 @@ const workspaceService = {
     const payload: CreateWorkspacePayload = { title };
     if (repoId) payload.repositoryId = repoId;
     if (repositoryUrl) payload.repositoryUrl = repositoryUrl;
-    const { data } = await api.post<Workspace>('/workspaces', payload);
-    return data;
+    const { data: res } = await api.post<ApiResponse<Workspace>>('/workspaces', payload);
+    return res.data;
   },
 
   async getWorkspace(id: string): Promise<Workspace> {
-    const { data } = await api.get<Workspace>(`/workspaces/${id}`);
-    return data;
+    const { data: res } = await api.get<ApiResponse<Workspace>>(`/workspaces/${id}`);
+    return res.data;
   },
 
   async updateWorkspace(
     id: string,
     patch: Partial<Pick<Workspace, 'title'>>,
   ): Promise<Workspace> {
-    const { data } = await api.patch<Workspace>(`/workspaces/${id}`, patch);
-    return data;
+    const { data: res } = await api.patch<ApiResponse<Workspace>>(`/workspaces/${id}`, patch);
+    return res.data;
   },
 
   async deleteWorkspace(id: string): Promise<void> {

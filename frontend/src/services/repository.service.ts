@@ -37,49 +37,55 @@ export interface FileContent {
   language?: string;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
 const repositoryService = {
   async importRepository(gitUrl: string, name?: string): Promise<Repository> {
-    const { data } = await api.post<Repository>('/repositories/import', {
+    const { data: res } = await api.post<ApiResponse<Repository>>('/repositories/import', {
       gitUrl,
       name,
     });
-    return data;
+    return res.data;
   },
 
   async getRepositories(): Promise<Repository[]> {
-    const { data } = await api.get<Repository[]>('/repositories');
-    return data;
+    const { data: res } = await api.get<ApiResponse<Repository[]>>('/repositories');
+    return res.data;
   },
 
   async getRepository(id: string): Promise<Repository> {
-    const { data } = await api.get<Repository>(`/repositories/${id}`);
-    return data;
+    const { data: res } = await api.get<ApiResponse<Repository>>(`/repositories/${id}`);
+    return res.data;
   },
 
   async getStatus(id: string): Promise<{ status: IndexingStatus; progress?: number }> {
-    const { data } = await api.get<{ status: IndexingStatus; progress?: number }>(
+    const { data: res } = await api.get<ApiResponse<{ status: IndexingStatus; progress?: number }>>(
       `/repositories/${id}/status`,
     );
-    return data;
+    return res.data;
   },
 
   async triggerIndex(id: string): Promise<{ message: string }> {
-    const { data } = await api.post<{ message: string }>(
+    const { data: res } = await api.post<ApiResponse<{ message: string }>>(
       `/repositories/${id}/index`,
     );
-    return data;
+    return res.data;
   },
 
   async getFileTree(id: string): Promise<FileNode[]> {
-    const { data } = await api.get<FileNode[]>(`/repositories/${id}/tree`);
-    return data;
+    const { data: res } = await api.get<ApiResponse<FileNode[]>>(`/repositories/${id}/tree`);
+    return res.data;
   },
 
   async getFileContent(id: string, filePath: string): Promise<FileContent> {
-    const { data } = await api.get<FileContent>(
+    const { data: res } = await api.get<ApiResponse<FileContent>>(
       `/repositories/${id}/file?path=${encodeURIComponent(filePath)}`,
     );
-    return data;
+    return res.data;
   },
 
   async deleteRepository(id: string): Promise<void> {

@@ -29,26 +29,32 @@ export interface SendMessageResponse {
   messageId: string;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
 const conversationService = {
   async getConversations(workspaceId: string): Promise<Conversation[]> {
-    const { data } = await api.get<Conversation[]>(
+    const { data: res } = await api.get<ApiResponse<Conversation[]>>(
       `/workspaces/${workspaceId}/conversations`,
     );
-    return data;
+    return res.data;
   },
 
   async getConversation(conversationId: string): Promise<Conversation> {
-    const { data } = await api.get<Conversation>(
+    const { data: res } = await api.get<ApiResponse<Conversation>>(
       `/conversations/${conversationId}`,
     );
-    return data;
+    return res.data;
   },
 
   async getMessages(conversationId: string): Promise<Message[]> {
-    const { data } = await api.get<Message[]>(
+    const { data: res } = await api.get<ApiResponse<Message[]>>(
       `/conversations/${conversationId}/messages`,
     );
-    return data;
+    return res.data;
   },
 
   async sendMessage(
@@ -58,11 +64,11 @@ const conversationService = {
   ): Promise<SendMessageResponse> {
     const payload: SendMessagePayload = { content };
     if (conversationId) payload.conversationId = conversationId;
-    const { data } = await api.post<SendMessageResponse>(
+    const { data: res } = await api.post<ApiResponse<SendMessageResponse>>(
       `/workspaces/${workspaceId}/messages`,
       payload,
     );
-    return data;
+    return res.data;
   },
 
   async deleteConversation(conversationId: string): Promise<void> {
