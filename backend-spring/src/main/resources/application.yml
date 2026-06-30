@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: repogod-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/repogod}
+    username: ${SPRING_DATASOURCE_USERNAME:repogod}
+    password: ${SPRING_DATASOURCE_PASSWORD:repogod_secret}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:repogod-jwt-secret-change-in-production}
+    expiration-ms: 86400000
+    refresh-expiration-ms: 604800000
+  fastapi:
+    base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
+
+logging:
+  level:
+    com.repogod: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger{36} - traceId=%X{traceId} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

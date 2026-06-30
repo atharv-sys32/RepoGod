@@ -1,0 +1,133 @@
+import { useState, useCallback, useRef } from 'react';
+import chatService, { type PlannerStepData } from '@/services/chat.service';
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+interface UseChatStreamOptions {
+  workspaceId: string;
+  repositoryId?: string;
+  conversationId?: string;
+  onConversationCreated?: (id: string) => void;
+}
+
+export function useChatStream({
+  workspaceId,
+  repositoryId,
+  conversationId: initialConversationId,
+  onConversationCreated,
+}: UseChatStreamOptions) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [plannerEvents, setPlannerEvents] = useState<PlannerStepData[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const conversationIdRef = useRef<string | undefined>(initialConversationId);
+  const streamRef = useRef<{ close: () => void } | null>(null);
+
+  const sendMessage = useCallback(
+    (prompt: string) => {
+      if (isStreaming) return;
+
+      // Add user message immediately
+      const userMsg: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: prompt,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMsg]);
+
+      // Create assistant placeholder
+      const assistantId = `assistant-${Date.now()}`;
+      const assistantMsg: ChatMessage = {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+      setIsStreaming(true);
+      setError(null);
+
+      const stream = chatService.streamChat(
+        {
+          workspaceId,
+          repositoryId,
+          prompt,
+          conversationId: conversationIdRef.current,
+        },
+        {
+          onEvent: (event) => {
+            // Handle conversation ID from first event
+            if (
+              event.type === 'message_start' &&
+              typeof event.data === 'object' &&
+              event.data !== null &&
+              'conversationId' in event.data
+            ) {
+              const newId = (event.data as { conversationId: string }).conversationId;
+              if (!conversationIdRef.current) {
+                conversationIdRef.current = newId;
+                onConversationCreated?.(newId);
+              }
+            }
+          },
+          onMessage: (text) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: m.content + text } : m,
+              ),
+            );
+          },
+          onPlannerStep: (step) => {
+            setPlannerEvents((prev) => {
+              const idx = prev.findIndex((s) => s.stepId === step.stepId);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = step;
+                return next;
+              }
+              return [...prev, step];
+            });
+          },
+          onError: (err) => {
+            setError(err);
+            setIsStreaming(false);
+          },
+          onDone: () => {
+            setIsStreaming(false);
+          },
+        },
+      );
+
+      streamRef.current = stream;
+    },
+    [isStreaming, workspaceId, repositoryId, onConversationCreated],
+  );
+
+  const cancelStream = useCallback(() => {
+    streamRef.current?.close();
+    setIsStreaming(false);
+  }, []);
+
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+    setPlannerEvents([]);
+    conversationIdRef.current = undefined;
+  }, []);
+
+  return {
+    messages,
+    plannerEvents,
+    isStreaming,
+    error,
+    sendMessage,
+    cancelStream,
+    clearMessages,
+    conversationId: conversationIdRef.current,
+  };
+}

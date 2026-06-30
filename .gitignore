@@ -1,0 +1,14 @@
+.env
+*.pyc
+__pycache__/
+node_modules/
+dist/
+build/
+target/
+.gradle/
+*.class
+*.jar
+.idea/
+.vscode/
+*.log
+repo_storage/
