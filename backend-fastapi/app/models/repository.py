@@ -1,5 +1,6 @@
 import enum
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
@@ -134,6 +135,7 @@ class DependencyEdge(Base):
     edge_type: Mapped[Optional[str]] = mapped_column(String(50))
 
 
+class CallGraphEdge(Base):
     __tablename__ = "call_graph_edges"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -148,4 +150,7 @@ class DependencyEdge(Base):
     callee_symbol: Mapped[str] = mapped_column(String(512), nullable=False)
     caller_file: Mapped[Optional[str]] = mapped_column(Text)
     callee_file: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
