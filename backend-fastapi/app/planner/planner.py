@@ -19,6 +19,9 @@ from app.tools.knowledge.knowledge_tool import (
 )
 from app.tools.review.review_tool import ReviewTool
 from app.tools.testing.testing_tool import TestingTool
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -159,13 +162,11 @@ class PlannerOrchestrator:
                 data={"query": step_query},
             )
         state = await self._node_execute_tools(state, db_session)
-        for step in steps:
-            yield PlannerEvent(
-                event_type="tool_end",
-                tool_name=step.get("tool", "knowledge_tool"),
-                status="completed",
-                message="Tool completed",
-            )
+        # Yield the last N tool_end events from state events (N = step count)
+        all_events = list(state.get("events", []))
+        tool_ends = [e for e in all_events if isinstance(e, PlannerEvent) and e.event_type == "tool_end"]
+        for e in tool_ends[-len(steps):] if steps else []:
+            yield e
 
         # synthesize
         yield PlannerEvent(
@@ -360,6 +361,7 @@ class PlannerOrchestrator:
                     )
                 )
             except Exception as exc:
+                logger.error(f"Tool {tool_name} failed: {exc}", exc_info=True)
                 events.append(
                     PlannerEvent(
                         event_type="tool_end",
