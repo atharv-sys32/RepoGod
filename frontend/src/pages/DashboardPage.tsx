@@ -26,7 +26,7 @@ export default function DashboardPage() {
       const repo = await repositoryService.importRepository(repoUrl);
       repoId = repo.id;
     }
-    await createWorkspace.mutateAsync({ title, repositoryId: repoId });
+    await createWorkspace.mutateAsync({ title, repoId });
     setShowCreateModal(false);
   };
 
