@@ -3,6 +3,8 @@ package com.repogod.planner.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -26,6 +28,7 @@ public class PlannerRunEntity {
     @Column(name = "user_prompt", nullable = false, columnDefinition = "text")
     private String userPrompt;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "execution_plan", columnDefinition = "jsonb")
     private String executionPlan;
 

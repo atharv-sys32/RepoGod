@@ -45,6 +45,12 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
+      // After page refresh, re-sync rg_token from the persisted store
+      onRehydrateStorage: () => (state) => {
+        if (state?.token) {
+          localStorage.setItem('rg_token', state.token);
+        }
+      },
     },
   ),
 );
