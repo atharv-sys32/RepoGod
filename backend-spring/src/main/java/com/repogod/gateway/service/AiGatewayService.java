@@ -51,15 +51,14 @@ public class AiGatewayService {
      * @return Flux of String chunks from the SSE stream
      */
     public Flux<String> chat(String prompt, UUID repoId, UUID workspaceId) {
-        Map<String, Object> payload = Map.of(
-                "prompt", prompt,
-                "repo_id", repoId != null ? repoId.toString() : "",
-                "workspace_id", workspaceId != null ? workspaceId.toString() : ""
-        );
         log.debug("Sending chat request to FastAPI: prompt length={}", prompt.length());
-        return fastApiWebClient.post()
-                .uri("/api/v1/chat/stream")
-                .bodyValue(payload)
+        return fastApiWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/chat/stream")
+                        .queryParam("prompt", prompt)
+                        .queryParam("repository_id", repoId != null ? repoId.toString() : "")
+                        .queryParam("workspace_id", workspaceId != null ? workspaceId.toString() : "")
+                        .build())
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(String.class)

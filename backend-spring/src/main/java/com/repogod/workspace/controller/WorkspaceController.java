@@ -2,6 +2,10 @@ package com.repogod.workspace.controller;
 
 import com.repogod.auth.repository.UserRepository;
 import com.repogod.common.dto.ApiResponse;
+import com.repogod.conversation.dto.ConversationDto;
+import com.repogod.conversation.dto.MessageDto;
+import com.repogod.conversation.service.ConversationService;
+import com.repogod.streaming.service.ChatStreamService;
 import com.repogod.workspace.dto.CreateWorkspaceRequest;
 import com.repogod.workspace.dto.WorkspaceDto;
 import com.repogod.workspace.service.WorkspaceService;
@@ -21,10 +25,14 @@ public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
     private final UserRepository userRepository;
+    private final ConversationService conversationService;
 
-    public WorkspaceController(WorkspaceService workspaceService, UserRepository userRepository) {
+    public WorkspaceController(WorkspaceService workspaceService,
+                               UserRepository userRepository,
+                               ConversationService conversationService) {
         this.workspaceService = workspaceService;
         this.userRepository = userRepository;
+        this.conversationService = conversationService;
     }
 
     private UUID resolveUserId(UserDetails userDetails) {
@@ -72,5 +80,11 @@ public class WorkspaceController {
         UUID userId = resolveUserId(userDetails);
         workspaceService.delete(id, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/conversations")
+    public ResponseEntity<ApiResponse<List<ConversationDto>>> getConversations(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(conversationService.getConversations(id)));
     }
 }
