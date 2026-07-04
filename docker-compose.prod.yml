@@ -30,7 +30,7 @@ services:
       retries: 5
 
   backend-spring:
-    image: ghcr.io/atharv-sys32/repogod-spring:latest
+    image: ghcr.io/atharv-sys32/repogod/backend-spring:latest
     container_name: repogod-spring
     ports:
       - "8080:8080"
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
 
   backend-fastapi:
-    image: ghcr.io/atharv-sys32/repogod-fastapi:latest
+    image: ghcr.io/atharv-sys32/repogod/backend-fastapi:latest
     container_name: repogod-fastapi
     ports:
       - "8000:8000"
@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/atharv-sys32/repogod-frontend:latest
+    image: ghcr.io/atharv-sys32/repogod/frontend:latest
     container_name: repogod-frontend
     ports:
       - "3000:80"
