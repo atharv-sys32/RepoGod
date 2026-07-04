@@ -12,18 +12,19 @@ _lazy_model = None
 
 
 def _get_model():
-    """Lazy-load sentence-transformers model (downloads on first use)."""
+    """Lazy-load fastembed model (ONNX-based, no PyTorch dependency)."""
     global _lazy_model
     if _lazy_model is None:
-        from sentence_transformers import SentenceTransformer
-        _lazy_model = SentenceTransformer(settings.LOCAL_EMBEDDING_MODEL)
+        from fastembed import TextEmbedding
+        _lazy_model = TextEmbedding(model_name=settings.LOCAL_EMBEDDING_MODEL)
     return _lazy_model
 
 
 class EmbeddingService:
-    """Generates and stores vector embeddings using a local sentence-transformers model.
+    """Generates and stores vector embeddings using a local fastembed model.
 
     Runs entirely on the EC2 — no API calls, no rate limits, no cost.
+    Uses ONNX runtime (no PyTorch), making it much smaller than sentence-transformers.
     """
 
     async def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
@@ -31,8 +32,9 @@ class EmbeddingService:
             return []
 
         model = _get_model()
-        embeddings = model.encode(texts, show_progress_bar=False, batch_size=128)
-        return embeddings.tolist()
+        # fastembed.embed() returns an iterator of numpy arrays
+        embeddings = list(model.embed(texts, batch_size=128))
+        return [emb.tolist() for emb in embeddings]
 
     async def store_embeddings(
         self,
