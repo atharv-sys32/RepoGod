@@ -75,7 +75,7 @@ class ContextRetriever:
                 language,
                 1 - (embedding <=> {query_vector_sql}) AS score
             FROM embeddings
-            WHERE repository_id = :repo_id
+            WHERE repository_id = CAST(:repo_id AS uuid)
             ORDER BY embedding <=> {query_vector_sql}
             LIMIT :top_k
             """
