@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, MessageSquare, Clock, ArrowRight, FolderGit2 } from 'lucide-react';
 import { useWorkspaces, useCreateWorkspace } from '@/hooks/useWorkspaces';
 import { useConversations } from '@/hooks/useConversation';
+import repositoryService from '@/services/repository.service';
 import { WorkspaceCard } from '@/features/workspace/WorkspaceCard';
 import { CreateWorkspaceModal } from '@/features/workspace/CreateWorkspaceModal';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -20,7 +21,12 @@ export default function DashboardPage() {
   const { data: conversations } = useConversations(firstWorkspaceId ?? '');
 
   const handleCreate = async (title: string, repoUrl?: string) => {
-    await createWorkspace.mutateAsync({ title, repositoryUrl: repoUrl });
+    let repoId: string | undefined;
+    if (repoUrl) {
+      const repo = await repositoryService.importRepository(repoUrl);
+      repoId = repo.id;
+    }
+    await createWorkspace.mutateAsync({ title, repositoryId: repoId });
     setShowCreateModal(false);
   };
 
