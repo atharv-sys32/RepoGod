@@ -34,7 +34,11 @@ class KnowledgeTool:
         engine = ContextEngine()
         llm = LLMService()
 
-        retrieved_context = await engine.build_context(query, repository_id, db_session)
+        try:
+            retrieved_context = await engine.build_context(query, repository_id, db_session)
+        except Exception:
+            await db_session.rollback()
+            retrieved_context = ""
 
         response_md = await llm.generate(
             system_prompt=KNOWLEDGE_SYSTEM_PROMPT,

@@ -287,7 +287,9 @@ class PlannerOrchestrator:
                 query, repo_id, db_session
             )
         except Exception as exc:
+            await db_session.rollback()
             context = f"Context retrieval failed: {exc}"
+            logger.warning(f"Context retrieval failed: {exc}")
 
         events.append(
             PlannerEvent(
