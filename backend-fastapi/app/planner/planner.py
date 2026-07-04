@@ -11,7 +11,12 @@ from app.llm.llm_service import LLMService
 from app.models.schemas import ArtifactOut, PlannerEvent
 from app.planner.state import PlannerState
 from app.prompts.templates import PLANNER_SYSTEM_PROMPT
-from app.tools.knowledge.knowledge_tool import KnowledgeTool
+from app.tools.knowledge.knowledge_tool import (
+    KnowledgeTool,
+    DocumentationReaderTool,
+    CodeInspectorTool,
+    SequenceDiagramGeneratorTool,
+)
 from app.tools.review.review_tool import ReviewTool
 from app.tools.testing.testing_tool import TestingTool
 
@@ -30,6 +35,9 @@ _TOOL_REGISTRY: dict[str, Any] = {
     "knowledge_tool": KnowledgeTool(),
     "review_tool": ReviewTool(),
     "testing_tool": TestingTool(),
+    "documentation_reader": DocumentationReaderTool(),
+    "code_inspector": CodeInspectorTool(),
+    "sequence_diagram_generator": SequenceDiagramGeneratorTool(),
 }
 
 
