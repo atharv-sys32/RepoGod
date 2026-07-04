@@ -60,10 +60,12 @@ class ContextRetriever:
 
         query_vector = vectors[0]
 
-        # Use pgvector cosine distance operator (<=>)
+        # Use pgvector cosine distance operator (<=>) with inline vector literal
+        # Using format() here is safe because vector_literal is our own generated data, not user input
         vector_literal = f"[{','.join(str(v) for v in query_vector)}]"
+        query_vector_sql = f"CAST('{vector_literal}' AS vector(384))"
         stmt = text(
-            """
+            f"""
             SELECT
                 content,
                 file_path,
@@ -71,14 +73,13 @@ class ContextRetriever:
                 start_line,
                 end_line,
                 language,
-                1 - (embedding <=> :qvec::vector) AS score
+                1 - (embedding <=> {query_vector_sql}) AS score
             FROM embeddings
             WHERE repository_id = :repo_id
-            ORDER BY embedding <=> :qvec::vector
+            ORDER BY embedding <=> {query_vector_sql}
             LIMIT :top_k
             """
         ).bindparams(
-            qvec=vector_literal,
             repo_id=str(repository_id),
             top_k=top_k,
         )
