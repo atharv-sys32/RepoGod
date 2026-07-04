@@ -15,6 +15,8 @@ except ImportError:
     _has_pgvector = False
 
 
+from app.config import settings
+
 class Embedding(Base):
     __tablename__ = "embeddings"
 
@@ -34,7 +36,7 @@ class Embedding(Base):
     end_line: Mapped[Optional[int]] = mapped_column(Integer)
     language: Mapped[Optional[str]] = mapped_column(Text)
     embedding: Mapped[Optional[object]] = mapped_column(
-        Vector(3072) if _has_pgvector else Text, nullable=True
+        Vector(settings.EMBEDDING_DIM) if _has_pgvector else Text, nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

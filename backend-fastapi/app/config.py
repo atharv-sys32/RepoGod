@@ -5,7 +5,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/repogod"
     REDIS_URL: str = "redis://localhost:6379"
     GOOGLE_API_KEY: str = ""
-    EMBEDDING_MODEL: str = "models/gemini-embedding-001"
+    LOCAL_EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_DIM: int = 384
     LLM_MODEL: str = "gemini-2.0-flash"
     CHUNK_SIZE: int = 1500
     RETRIEVAL_DEPTH: int = 10

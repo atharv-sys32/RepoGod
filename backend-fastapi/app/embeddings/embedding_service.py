@@ -1,7 +1,6 @@
 import uuid
 from typing import Any
 
-import google.generativeai as genai
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,31 +8,31 @@ from app.config import settings
 from app.parser.chunker import Chunk
 
 
-class EmbeddingService:
-    """Generates and stores vector embeddings using Google Gemini."""
+_lazy_model = None
 
-    def __init__(self) -> None:
-        genai.configure(api_key=settings.GOOGLE_API_KEY)
-        self._model = settings.EMBEDDING_MODEL
+
+def _get_model():
+    """Lazy-load sentence-transformers model (downloads on first use)."""
+    global _lazy_model
+    if _lazy_model is None:
+        from sentence_transformers import SentenceTransformer
+        _lazy_model = SentenceTransformer(settings.LOCAL_EMBEDDING_MODEL)
+    return _lazy_model
+
+
+class EmbeddingService:
+    """Generates and stores vector embeddings using a local sentence-transformers model.
+
+    Runs entirely on the EC2 — no API calls, no rate limits, no cost.
+    """
 
     async def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
 
-        batch_size = 100
-        all_vectors: list[list[float]] = []
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            result = genai.embed_content(
-                model=self._model,
-                content=batch,
-                task_type="retrieval_document",
-            )
-            if isinstance(result["embedding"][0], list):
-                all_vectors.extend(result["embedding"])
-            else:
-                all_vectors.append(result["embedding"])
-        return all_vectors
+        model = _get_model()
+        embeddings = model.encode(texts, show_progress_bar=False, batch_size=128)
+        return embeddings.tolist()
 
     async def store_embeddings(
         self,
