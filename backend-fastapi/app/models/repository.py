@@ -6,7 +6,6 @@ from typing import Optional
 from sqlalchemy import (
     BigInteger,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     String,
@@ -41,8 +40,8 @@ class Repository(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     git_url: Mapped[str] = mapped_column(Text, nullable=False)
     default_branch: Mapped[Optional[str]] = mapped_column(String(100))
-    status: Mapped[RepositoryStatus] = mapped_column(
-        Enum(RepositoryStatus), default=RepositoryStatus.PENDING, nullable=False
+    status: Mapped[str] = mapped_column(
+        String(50), default=RepositoryStatus.PENDING.value, nullable=False
     )
     progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     files_indexed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
