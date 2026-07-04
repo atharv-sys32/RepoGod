@@ -8,8 +8,8 @@ on:
 env:
   # The registry to push to – GitHub Container Registry in this case
   REGISTRY: ghcr.io
-  # Full name of the repository – used as the image namespace
-  IMAGE_NAME: ${{ github.repository }}
+  # Full name of the repository – used as the image namespace (lowercase for GHCR)
+  IMAGE_NAME: ${{ github.repository_owner }}/repogod
 
 jobs:
   build:
