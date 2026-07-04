@@ -176,6 +176,13 @@ class PlannerOrchestrator:
         )
 
         yield PlannerEvent(
+            event_type="assistant_response",
+            tool_name=None,
+            status="completed",
+            message=state.get("final_response", ""),
+        )
+
+        yield PlannerEvent(
             event_type="done",
             tool_name=None,
             status="completed",

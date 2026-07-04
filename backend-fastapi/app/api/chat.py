@@ -54,8 +54,17 @@ async def _event_stream(
             db_session=session,
         ):
             payload = event.model_dump()
+            # Emit planner events as standard SSE
+            yield f"event: message\n"
             yield f"data: {json.dumps(payload)}\n\n"
+
+            # Also forward the final response text as chunk events
+            if event.event_type == "assistant_response" and event.message:
+                yield f"event: chunk\ndata: {event.message}\n\n"
+
             await asyncio.sleep(0)  # yield control
+
+        yield f"event: done\ndata: [DONE]\n\n"
 
 
 @router.get("/chat/stream")
