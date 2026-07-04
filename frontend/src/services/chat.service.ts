@@ -109,7 +109,15 @@ const chatService = {
                   } catch { /* skip */ }
                   break;
                 case 'chunk':
-                  handlers.onMessage?.(dataStr);
+                  // Chunk data is JSON {"text": "..."} to avoid SSE newline issues
+                  try {
+                    const chunkData = JSON.parse(dataStr);
+                    if (chunkData.text) {
+                      handlers.onMessage?.(chunkData.text);
+                    }
+                  } catch {
+                    handlers.onMessage?.(dataStr);
+                  }
                   break;
                 case 'error':
                   handlers.onError?.(dataStr);
