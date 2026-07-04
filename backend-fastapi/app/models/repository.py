@@ -1,6 +1,5 @@
 import enum
 import uuid
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
@@ -79,9 +78,6 @@ class RepositoryFile(Base):
     size_bytes: Mapped[Optional[int]] = mapped_column(BigInteger)
     line_count: Mapped[Optional[int]] = mapped_column(Integer)
     checksum: Mapped[Optional[str]] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
 
     __table_args__ = (
         UniqueConstraint("repository_id", "file_path", name="uq_repo_file_path"),
@@ -115,9 +111,6 @@ class AstNode(Base):
     end_line: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[Optional[str]] = mapped_column(Text)
     metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSONB)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
 
     file: Mapped["RepositoryFile"] = relationship(
         "RepositoryFile", back_populates="ast_nodes"
@@ -139,12 +132,8 @@ class DependencyEdge(Base):
     target_file: Mapped[str] = mapped_column(Text, nullable=False)
     import_name: Mapped[Optional[str]] = mapped_column(Text)
     edge_type: Mapped[Optional[str]] = mapped_column(String(50))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
 
 
-class CallGraphEdge(Base):
     __tablename__ = "call_graph_edges"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -159,6 +148,4 @@ class CallGraphEdge(Base):
     callee_symbol: Mapped[str] = mapped_column(String(512), nullable=False)
     caller_file: Mapped[Optional[str]] = mapped_column(Text)
     callee_file: Mapped[Optional[str]] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+
