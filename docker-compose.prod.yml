@@ -57,7 +57,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://repogod:${POSTGRES_PASSWORD:-repogod_secret}@postgres:5432/repogod
       REDIS_URL: redis://redis:6379
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
     volumes:
       - repo_storage:/app/repos
     depends_on:

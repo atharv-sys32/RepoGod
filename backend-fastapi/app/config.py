@@ -4,10 +4,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/repogod"
     REDIS_URL: str = "redis://localhost:6379"
-    GOOGLE_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama3-70b-8192"
     LOCAL_EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     EMBEDDING_DIM: int = 384
-    LLM_MODEL: str = "gemini-2.0-flash"
     CHUNK_SIZE: int = 1500
     RETRIEVAL_DEPTH: int = 10
     REPO_STORAGE_PATH: str = "/app/repos"
