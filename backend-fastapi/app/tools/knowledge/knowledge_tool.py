@@ -36,16 +36,19 @@ class KnowledgeTool:
 
         try:
             retrieved_context = await engine.build_context(query, repository_id, db_session)
-        except Exception:
+        except Exception as e:
             await db_session.rollback()
             retrieved_context = ""
+            print(f"[DEBUG] build_context failed: {e}", flush=True)
 
+        print(f"[DEBUG] context length={len(retrieved_context)} preview={retrieved_context[:200]}", flush=True)
         response_md = await llm.generate(
             system_prompt=KNOWLEDGE_SYSTEM_PROMPT,
             user_prompt=query,
             context=retrieved_context,
         )
 
+        print(f"[DEBUG] LLM response length={len(response_md)} preview={response_md[:200]}", flush=True)
         artifacts = self._extract_mermaid_artifacts(response_md)
 
         return ToolOutput(
