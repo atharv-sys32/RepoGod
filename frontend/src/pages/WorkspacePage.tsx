@@ -58,10 +58,20 @@ export default function WorkspacePage() {
   const handleSelectConversation = (convId: string) => {
     setSearchParams({ conversation: convId });
     setShowConvPanel(false);
+    setShowNewChat(false);
   };
+
+  const [showNewChat, setShowNewChat] = useState(false);
 
   const handleNewConversation = () => {
     setSearchParams({});
+    setShowNewChat(true);
+  };
+
+  // When a new conversation is created via sendMessage, clear the "new chat" mode
+  const handleSend = (prompt: string) => {
+    setShowNewChat(false);
+    sendMessage(prompt);
   };
 
   const handleBack = () => {
@@ -182,7 +192,7 @@ export default function WorkspacePage() {
           )}
         </div>
 
-        {!conversationId && !isStreaming ? (
+        {!conversationId && !isStreaming && !showNewChat ? (
           /* No conversation selected — show conversation list */
           <div className="flex-1 overflow-auto p-4 space-y-2">
             <div className="flex items-center justify-between mb-3">
@@ -218,7 +228,7 @@ export default function WorkspacePage() {
             messages={messages}
             isStreaming={isStreaming}
             error={error}
-            onSend={sendMessage}
+            onSend={handleSend}
             onCancel={cancelStream}
           />
         )}
