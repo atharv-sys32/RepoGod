@@ -108,18 +108,15 @@ export default function RepositoriesPage() {
 
   const refreshAll = useCallback(async () => {
     const reposData = await repositoryService.getRepositories().catch(() => []);
+    const allWs = await (await import('@/services/workspace.service')).default.getWorkspaces().catch(() => []);
     setRepos(reposData);
-    const ws = await import('@/services/workspace.service').then((m) => m.default);
-    const all = await ws.getWorkspaces().catch(() => []);
-    setNoRepoWorkspaces(all.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title })));
+    setNoRepoWorkspaces(allWs.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title })));
+    setSelectedGroup(null);
   }, []);
 
   const handleDeleteGroup = async (group: RepoGroup) => {
     for (const repo of group.repos) {
       await repositoryService.deleteRepository(repo.id).catch(() => {});
-    }
-    if (selectedGroup?.gitUrl === group.gitUrl && selectedGroup?.status === group.status) {
-      setSelectedGroup(null);
     }
     await refreshAll();
   };
