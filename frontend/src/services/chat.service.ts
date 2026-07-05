@@ -90,10 +90,10 @@ const chatService = {
           buffer = lines.pop() ?? '';
 
           for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              currentEvent = line.slice(7).trim();
-            } else if (line.startsWith('data: ')) {
-              const dataStr = line.slice(6).trim();
+            if (line.startsWith('event:')) {
+              currentEvent = line.slice(6).trim();
+            } else if (line.startsWith('data:')) {
+              const dataStr = line.slice(5).trim();
               if (dataStr === '[DONE]') {
                 handlers.onDone?.();
                 finished = true;
