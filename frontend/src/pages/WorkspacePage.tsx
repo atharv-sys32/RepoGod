@@ -110,13 +110,10 @@ export default function WorkspacePage() {
 
   const handleBack = () => {
     if (conversationId) {
-      // In a conversation → go back to conversation list
       setSearchParams({});
     } else if (showNewChat) {
-      // In new chat → go back to conversation list
       setShowNewChat(false);
     } else {
-      // On conversation list → go to dashboard
       navigate('/dashboard');
     }
   };
@@ -211,9 +208,11 @@ export default function WorkspacePage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-800 bg-gray-950">
-          <button onClick={handleBack} className="text-gray-500 hover:text-gray-300 transition-colors" title="Go back">
-            <ArrowLeft size={16} />
-          </button>
+          {(conversationId || showNewChat) && (
+            <button onClick={handleBack} className="text-gray-500 hover:text-gray-300 transition-colors" title="Go back">
+              <ArrowLeft size={16} />
+            </button>
+          )}
           {!showRepoPanel && (
             <button onClick={() => setShowRepoPanel(true)} title="Show file tree" className="text-gray-500 hover:text-gray-300 transition-colors">
               <PanelLeftOpen size={16} />
