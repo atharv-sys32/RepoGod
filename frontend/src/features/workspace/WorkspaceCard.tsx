@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderGit2, Clock, ArrowUpRight } from 'lucide-react';
+import { FolderGit2, Clock, ArrowUpRight, Trash2 } from 'lucide-react';
 import type { Workspace } from '@/services/workspace.service';
+import { useDeleteWorkspace } from '@/hooks/useWorkspaces';
 import { IndexingBadge } from '@/components/ui/Badge';
 import { formatRelativeTime } from '@/utils/format';
 import { cn } from '@/utils/cn';
@@ -12,11 +13,26 @@ interface WorkspaceCardProps {
 }
 
 export function WorkspaceCard({ workspace, className }: WorkspaceCardProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const deleteWorkspace = useDeleteWorkspace();
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (showConfirm) {
+      deleteWorkspace.mutate(workspace.id);
+      setShowConfirm(false);
+    } else {
+      setShowConfirm(true);
+      setTimeout(() => setShowConfirm(false), 3000);
+    }
+  };
+
   return (
     <Link
       to={`/workspace/${workspace.id}`}
       className={cn(
-        'group flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150',
+        'group flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 relative',
         className,
       )}
     >
@@ -47,9 +63,23 @@ export function WorkspaceCard({ workspace, className }: WorkspaceCardProps) {
           <Clock size={12} />
           <span>{formatRelativeTime(workspace.lastOpenedAt ?? workspace.updatedAt)}</span>
         </div>
-        {workspace.indexingStatus && (
-          <IndexingBadge status={workspace.indexingStatus} />
-        )}
+        <div className="flex items-center gap-2">
+          {workspace.indexingStatus && (
+            <IndexingBadge status={workspace.indexingStatus} />
+          )}
+          <button
+            onClick={handleDelete}
+            className={cn(
+              'p-1.5 rounded-lg transition-colors',
+              showConfirm
+                ? 'bg-red-900/40 text-red-400 hover:bg-red-900/60'
+                : 'text-gray-600 hover:text-red-400 hover:bg-red-900/20 opacity-0 group-hover:opacity-100',
+            )}
+            title={showConfirm ? 'Click again to confirm delete' : 'Delete workspace'}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
     </Link>
   );

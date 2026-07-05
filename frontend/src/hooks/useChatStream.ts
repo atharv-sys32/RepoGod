@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import chatService, { type PlannerStepData } from '@/services/chat.service';
+import conversationService from '@/services/conversation.service';
 
 export interface ChatMessage {
   id: string;
@@ -27,6 +28,24 @@ export function useChatStream({
   const [error, setError] = useState<string | null>(null);
   const conversationIdRef = useRef<string | undefined>(initialConversationId);
   const streamRef = useRef<{ close: () => void } | null>(null);
+
+  // Load past messages when an existing conversation ID is provided
+  useEffect(() => {
+    if (initialConversationId) {
+      conversationIdRef.current = initialConversationId;
+      conversationService.getMessages(initialConversationId).then((msgs) => {
+        const loaded: ChatMessage[] = msgs.map((m) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          timestamp: new Date(m.createdAt),
+        }));
+        setMessages(loaded);
+      }).catch(() => {
+        // conversation might not exist yet, that's ok
+      });
+    }
+  }, [initialConversationId]);
 
   const sendMessage = useCallback(
     async (prompt: string) => {
