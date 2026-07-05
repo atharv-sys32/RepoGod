@@ -15,6 +15,7 @@ from app.tools.knowledge.knowledge_tool import (
     KnowledgeTool,
     DocumentationReaderTool,
     CodeInspectorTool,
+    GitLogTool,
     SequenceDiagramGeneratorTool,
 )
 from app.tools.review.review_tool import ReviewTool
@@ -40,6 +41,7 @@ _TOOL_REGISTRY: dict[str, Any] = {
     "testing_tool": TestingTool(),
     "documentation_reader": DocumentationReaderTool(),
     "code_inspector": CodeInspectorTool(),
+    "git_log": GitLogTool(),
     "sequence_diagram_generator": SequenceDiagramGeneratorTool(),
 }
 
