@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, MessageSquare, Clock, ArrowRight, FolderGit2 } from 'lucide-react';
+import { Plus, FolderGit2, LayoutGrid } from 'lucide-react';
 import { useWorkspaces, useCreateWorkspace } from '@/hooks/useWorkspaces';
-import { useConversations } from '@/hooks/useConversation';
 import repositoryService from '@/services/repository.service';
 import { WorkspaceCard } from '@/features/workspace/WorkspaceCard';
 import { CreateWorkspaceModal } from '@/features/workspace/CreateWorkspaceModal';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { formatRelativeTime } from '@/utils/format';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function DashboardPage() {
@@ -15,10 +12,6 @@ export default function DashboardPage() {
   const { data: workspaces, isLoading: wsLoading } = useWorkspaces();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const createWorkspace = useCreateWorkspace();
-
-  const recentWorkspaces = workspaces?.slice(0, 6) ?? [];
-  const firstWorkspaceId = workspaces?.[0]?.id;
-  const { data: conversations } = useConversations(firstWorkspaceId ?? '');
 
   const handleCreate = async (title: string, repoUrl?: string) => {
     let repoId: string | undefined;
@@ -50,67 +43,35 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {[
-          {
-            label: 'Workspaces',
-            value: workspaces?.length ?? 0,
-            icon: <MessageSquare size={18} className="text-indigo-400" />,
-          },
-          {
-            label: 'Repositories',
-            value: workspaces?.filter((w) => w.repositoryId).length ?? 0,
-            icon: <FolderGit2 size={18} className="text-emerald-400" />,
-          },
-          {
-            label: 'Conversations',
-            value: conversations?.length ?? 0,
-            icon: <MessageSquare size={18} className="text-blue-400" />,
-          },
-          {
-            label: 'Active Today',
-            value: workspaces?.filter((w) => {
-              const last = w.lastOpenedAt ?? w.updatedAt;
-              return new Date(last).toDateString() === new Date().toDateString();
-            }).length ?? 0,
-            icon: <Clock size={18} className="text-amber-400" />,
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-gray-800 bg-gray-900 px-5 py-4"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-                {stat.label}
-              </span>
-              {stat.icon}
-            </div>
-            <p className="text-2xl font-bold text-gray-100">{stat.value}</p>
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="rounded-xl border border-gray-800 bg-gray-900 px-5 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Workspaces</span>
+            <LayoutGrid size={18} className="text-indigo-400" />
           </div>
-        ))}
+          <p className="text-2xl font-bold text-gray-100">{workspaces?.length ?? 0}</p>
+        </div>
+        <div className="rounded-xl border border-gray-800 bg-gray-900 px-5 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Repositories</span>
+            <FolderGit2 size={18} className="text-emerald-400" />
+          </div>
+          <p className="text-2xl font-bold text-gray-100">
+            {workspaces?.filter((w) => w.repositoryId).length ?? 0}
+          </p>
+        </div>
       </div>
 
       {/* Workspaces Grid */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-200">
-            Recent Workspaces
-          </h2>
-          <Link
-            to="/workspaces"
-            className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
-          >
-            View all
-            <ArrowRight size={14} />
-          </Link>
+          <h2 className="text-base font-semibold text-gray-200">Workspaces</h2>
         </div>
 
         {wsLoading ? (
           <FullPageSpinner label="Loading workspaces..." />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Create card */}
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-800 bg-gray-900/50 hover:border-indigo-600 hover:bg-gray-900 transition-all duration-150 p-6 text-gray-500 hover:text-indigo-400 min-h-[120px] cursor-pointer"
@@ -121,49 +82,12 @@ export default function DashboardPage() {
               <span className="text-sm font-medium">Create Workspace</span>
             </button>
 
-            {recentWorkspaces.map((ws) => (
+            {workspaces?.map((ws) => (
               <WorkspaceCard key={ws.id} workspace={ws} />
             ))}
           </div>
         )}
       </div>
-
-      {/* Recent Conversations */}
-      {conversations && conversations.length > 0 && (
-        <div>
-          <h2 className="text-base font-semibold text-gray-200 mb-4">
-            Recent Conversations
-          </h2>
-          <div className="rounded-xl border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-            {conversations.slice(0, 5).map((conv) => (
-              <Link
-                key={conv.id}
-                to={`/workspace/${conv.workspaceId}?conversation=${conv.id}`}
-                className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-800/50 transition-colors group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <MessageSquare size={15} className="text-gray-500 shrink-0" />
-                  <span className="text-sm text-gray-300 truncate group-hover:text-gray-100">
-                    {conv.title ?? 'Untitled conversation'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  <span className="text-xs text-gray-600">
-                    {conv.messageCount} messages
-                  </span>
-                  <span className="text-xs text-gray-600">
-                    {formatRelativeTime(conv.lastMessageAt ?? conv.updatedAt)}
-                  </span>
-                  <ArrowRight
-                    size={14}
-                    className="text-gray-600 group-hover:text-indigo-400 transition-colors"
-                  />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       <CreateWorkspaceModal
         isOpen={showCreateModal}

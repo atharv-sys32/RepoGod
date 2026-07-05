@@ -64,8 +64,8 @@ export function WorkspaceCard({ workspace, className }: WorkspaceCardProps) {
           <span>{formatRelativeTime(workspace.lastOpenedAt ?? workspace.updatedAt)}</span>
         </div>
         <div className="flex items-center gap-2">
-          {workspace.repositoryId && workspace.indexingStatus && (
-            <IndexingBadge status={workspace.indexingStatus} />
+          {workspace.repositoryName && (
+            <IndexingBadge status="indexed" />
           )}
           <button
             onClick={handleDelete}
