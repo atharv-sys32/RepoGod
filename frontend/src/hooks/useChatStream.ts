@@ -68,15 +68,18 @@ export function useChatStream({
     }
   }, []);
 
-  // Load past messages when a conversation ID is provided
+  // Load messages when navigating to a specific conversation via URL.
+  // Don't clear messages during streaming (onConversationCreated updates URL mid-stream).
   useEffect(() => {
-    setMessages([]);
-    setPlannerEvents([]);
-    if (initialConversationId) {
+    if (initialConversationId && !isStreaming) {
       conversationIdRef.current = initialConversationId;
+      setMessages([]);
+      setPlannerEvents([]);
       loadMessages(initialConversationId);
-    } else {
+    } else if (!initialConversationId && !isStreaming) {
       conversationIdRef.current = undefined;
+      setMessages([]);
+      setPlannerEvents([]);
     }
   }, [initialConversationId]);
 
