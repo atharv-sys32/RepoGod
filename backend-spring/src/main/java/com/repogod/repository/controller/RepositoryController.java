@@ -85,6 +85,15 @@ public class RepositoryController {
         return ResponseEntity.ok(ApiResponse.ok(repositoryService.findById(id, userId)));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = resolveUserId(userDetails);
+        repositoryService.deleteById(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/tree")
     public ResponseEntity<ApiResponse<List<FileNodeDto>>> getFileTree(
             @PathVariable UUID id) {

@@ -92,6 +92,17 @@ public class RepositoryService {
         return RepositoryMapper.toDto(entity);
     }
 
+    @Transactional
+    public void deleteById(UUID id, UUID userId) {
+        RepositoryEntity entity = repositoryJpaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Repository", id));
+        if (!entity.getUserId().equals(userId)) {
+            throw new ResourceNotFoundException("Repository", id);
+        }
+        repositoryJpaRepository.delete(entity);
+        log.info("Deleted repository {} for user {}", id, userId);
+    }
+
     @Transactional(readOnly = true)
     public RepositoryDto findById(UUID id, UUID userId) {
         RepositoryEntity entity = repositoryJpaRepository.findById(id)
