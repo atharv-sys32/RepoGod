@@ -21,7 +21,17 @@ export default function RepositoriesPage() {
 
   useEffect(() => {
     repositoryService.getRepositories()
-      .then((r) => setRepos(r))
+      .then((all) => {
+        // Deduplicate by gitUrl — keep the latest entry per URL
+        const seen = new Map<string, Repo>();
+        for (const r of all) {
+          const existing = seen.get(r.gitUrl);
+          if (!existing || new Date(r.createdAt) > new Date(existing.createdAt)) {
+            seen.set(r.gitUrl, r);
+          }
+        }
+        setRepos(Array.from(seen.values()));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
