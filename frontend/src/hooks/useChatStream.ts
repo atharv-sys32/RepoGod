@@ -34,12 +34,31 @@ export function useChatStream({
     if (initialConversationId) {
       conversationIdRef.current = initialConversationId;
       conversationService.getMessages(initialConversationId).then((msgs) => {
-        const loaded: ChatMessage[] = msgs.map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          timestamp: new Date(m.createdAt),
-        }));
+        const loaded: ChatMessage[] = msgs.map((m) => {
+          // Clean up old messages that stored raw planner JSON events
+          let content = m.content;
+          if (content.startsWith('{"event_type":') || content.startsWith('{"eventtype":')) {
+            const textMarker = '{"text":"';
+            const idx = content.indexOf(textMarker);
+            if (idx >= 0) {
+              const start = idx + textMarker.length;
+              const end = content.indexOf('"}', start);
+              if (end >= 0) {
+                content = content.slice(start, end).replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+              } else {
+                content = '';
+              }
+            } else {
+              content = '';
+            }
+          }
+          return {
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content,
+            timestamp: new Date(m.createdAt),
+          };
+        });
         setMessages(loaded);
       }).catch(() => {
         // conversation might not exist yet, that's ok

@@ -92,7 +92,18 @@ public class ChatStreamService {
 
                 chatFlux.doOnNext(chunk -> {
                     try {
-                        fullResponse.append(chunk);
+                        // Only accumulate text content for saved message history,
+                        // skip planner event JSON (they don't have a "text" field)
+                        try {
+                            com.fasterxml.jackson.databind.ObjectMapper mapper =
+                                    new com.fasterxml.jackson.databind.ObjectMapper();
+                            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(chunk);
+                            if (node.has("text")) {
+                                fullResponse.append(node.get("text").asText());
+                            }
+                        } catch (Exception ignored) {
+                            // Not JSON or no text field — forward but don't accumulate
+                        }
                         emitter.send(SseEmitter.event().name("chunk").data(chunk));
                     } catch (IOException e) {
                         log.warn("SSE send error: {}", e.getMessage());
