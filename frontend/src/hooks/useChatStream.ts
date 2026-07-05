@@ -29,48 +29,64 @@ export function useChatStream({
   const conversationIdRef = useRef<string | undefined>(initialConversationId);
   const streamRef = useRef<{ close: () => void } | null>(null);
 
-  // Load past messages when an existing conversation ID is provided
-  useEffect(() => {
-    if (initialConversationId) {
-      conversationIdRef.current = initialConversationId;
-      conversationService.getMessages(initialConversationId).then((msgs) => {
-        const loaded: ChatMessage[] = msgs.map((m) => {
-          let content = m.content;
-          // Clean up old messages that stored raw SSE JSON instead of just text
-          if (content.includes('{"event_type":') || content.includes('{"eventtype":')) {
-            const marker = '{"text":';
-            const idx = content.lastIndexOf(marker);
-            if (idx >= 0) {
-              const after = content.slice(idx + marker.length).trim();
-              if (after[0] === '"') {
-                // Find closing unescaped quote
-                for (let i = 1; i < after.length; i++) {
-                  if (after[i] === '"' && after[i - 1] !== '\\') {
-                    content = after.slice(1, i)
-                      .replace(/\\n/g, '\n')
-                      .replace(/\\"/g, '"')
-                      .replace(/\\\\/g, '\\');
-                    break;
-                  }
+  const loadMessages = useCallback(async (convId: string) => {
+    try {
+      const msgs = await conversationService.getMessages(convId);
+      const loaded: ChatMessage[] = msgs.map((m) => {
+        let content = m.content;
+        // Clean up old messages that stored raw SSE JSON instead of just text
+        if (content.includes('{"event_type":') || content.includes('{"eventtype":')) {
+          const marker = '{"text":';
+          const idx = content.lastIndexOf(marker);
+          if (idx >= 0) {
+            const after = content.slice(idx + marker.length).trim();
+            if (after[0] === '"') {
+              for (let i = 1; i < after.length; i++) {
+                if (after[i] === '"' && after[i - 1] !== '\\') {
+                  content = after.slice(1, i)
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\"/g, '"')
+                    .replace(/\\\\/g, '\\');
+                  break;
                 }
               }
-            } else {
-              content = '[Response could not be parsed]';
             }
+          } else {
+            content = '[Response could not be parsed]';
           }
-          return {
-            id: m.id,
-            role: m.role as 'user' | 'assistant',
-            content,
-            timestamp: new Date(m.createdAt),
-          };
-        });
-        setMessages(loaded);
-      }).catch(() => {
-        // conversation might not exist yet, that's ok
+        }
+        return {
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content,
+          timestamp: new Date(m.createdAt),
+        };
       });
+      setMessages(loaded);
+    } catch {
+      // conversation might not exist yet, that's ok
     }
-  }, [initialConversationId]);
+  }, []);
+
+  // Load past messages when an existing conversation ID is provided,
+  // or fetch the latest conversation for this workspace
+  useEffect(() => {
+    setMessages([]);
+    setPlannerEvents([]);
+    if (initialConversationId) {
+      conversationIdRef.current = initialConversationId;
+      loadMessages(initialConversationId);
+    } else if (workspaceId) {
+      conversationService.getConversations(workspaceId).then((convs) => {
+        if (convs && convs.length > 0) {
+          const latest = convs[convs.length - 1]; // last = most recent
+          conversationIdRef.current = latest.id;
+          onConversationCreated?.(latest.id);
+          loadMessages(latest.id);
+        }
+      }).catch(() => {});
+    }
+  }, [initialConversationId, workspaceId, onConversationCreated]);
 
   const sendMessage = useCallback(
     async (prompt: string) => {
