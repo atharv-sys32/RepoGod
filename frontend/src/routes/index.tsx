@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
 import WorkspacePage from '@/pages/WorkspacePage';
+import RepositoriesPage from '@/pages/RepositoriesPage';
 import SettingsPage from '@/pages/SettingsPage';
 
 const router = createBrowserRouter([
@@ -41,12 +42,12 @@ const router = createBrowserRouter([
         element: <DashboardPage />,
       },
       {
-        path: '/workspaces',
-        element: <DashboardPage />,
-      },
-      {
         path: '/workspace/:id',
         element: <WorkspacePage />,
+      },
+      {
+        path: '/repositories',
+        element: <RepositoriesPage />,
       },
       {
         path: '/settings',

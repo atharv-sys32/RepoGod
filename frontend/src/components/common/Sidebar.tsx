@@ -3,7 +3,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderGit2,
-  MessageSquare,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -30,11 +29,6 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard size={18} />,
     exact: true,
-  },
-  {
-    to: '/workspaces',
-    label: 'Workspaces',
-    icon: <MessageSquare size={18} />,
   },
   {
     to: '/repositories',
