@@ -34,12 +34,37 @@ export function useChatStream({
     if (initialConversationId) {
       conversationIdRef.current = initialConversationId;
       conversationService.getMessages(initialConversationId).then((msgs) => {
-        const loaded: ChatMessage[] = msgs.map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          timestamp: new Date(m.createdAt),
-        }));
+        const loaded: ChatMessage[] = msgs.map((m) => {
+          let content = m.content;
+          // Clean up old messages that stored raw SSE JSON instead of just text
+          if (content.includes('{"event_type":') || content.includes('{"eventtype":')) {
+            const marker = '{"text":';
+            const idx = content.lastIndexOf(marker);
+            if (idx >= 0) {
+              const after = content.slice(idx + marker.length).trim();
+              if (after[0] === '"') {
+                // Find closing unescaped quote
+                for (let i = 1; i < after.length; i++) {
+                  if (after[i] === '"' && after[i - 1] !== '\\') {
+                    content = after.slice(1, i)
+                      .replace(/\\n/g, '\n')
+                      .replace(/\\"/g, '"')
+                      .replace(/\\\\/g, '\\');
+                    break;
+                  }
+                }
+              }
+            } else {
+              content = '[Response could not be parsed]';
+            }
+          }
+          return {
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content,
+            timestamp: new Date(m.createdAt),
+          };
+        });
         setMessages(loaded);
       }).catch(() => {
         // conversation might not exist yet, that's ok
