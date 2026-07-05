@@ -3,7 +3,6 @@ import MainLayout from '@/layouts/MainLayout';
 import AuthLayout from '@/layouts/AuthLayout';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import LoginPage from '@/pages/LoginPage';
-import DashboardPage from '@/pages/DashboardPage';
 import WorkspacePage from '@/pages/WorkspacePage';
 import RepositoriesPage from '@/pages/RepositoriesPage';
 import SettingsPage from '@/pages/SettingsPage';
@@ -39,15 +38,11 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/dashboard',
-        element: <DashboardPage />,
+        element: <RepositoriesPage />,
       },
       {
         path: '/workspace/:id',
         element: <WorkspacePage />,
-      },
-      {
-        path: '/repositories',
-        element: <RepositoriesPage />,
       },
       {
         path: '/settings',

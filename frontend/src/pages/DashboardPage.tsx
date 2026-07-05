@@ -15,7 +15,10 @@ export default function DashboardPage() {
   const createWorkspace = useCreateWorkspace();
 
   useEffect(() => {
-    repositoryService.getRepositories().then((repos) => setRepoCount(repos.length)).catch(() => {});
+    repositoryService.getRepositories().then((repos) => {
+      const uniqueUrls = new Set(repos.map((r) => r.gitUrl));
+      setRepoCount(uniqueUrls.size);
+    }).catch(() => {});
   }, []);
 
   const handleCreate = async (title: string, repoUrl?: string) => {

@@ -2,7 +2,6 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  FolderGit2,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -29,11 +28,6 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard size={18} />,
     exact: true,
-  },
-  {
-    to: '/repositories',
-    label: 'Repositories',
-    icon: <FolderGit2 size={18} />,
   },
   {
     to: '/settings',
