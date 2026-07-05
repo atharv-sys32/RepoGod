@@ -18,6 +18,7 @@ export default function WorkspacePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const conversationId = searchParams.get('conversation') ?? undefined;
+  const from = searchParams.get('from') ?? undefined;
 
   const queryClient = useQueryClient();
   const { data: workspace, isLoading } = useWorkspace(id ?? '');
@@ -63,7 +64,7 @@ export default function WorkspacePage() {
   }, [id, messages.length]);
 
   const handleSelectConversation = (convId: string) => {
-    setSearchParams({ conversation: convId });
+    setSearchParams({ conversation: convId, ...(from ? { from } : {}) });
     setShowConvPanel(false);
     setShowNewChat(false);
   };
@@ -110,11 +111,17 @@ export default function WorkspacePage() {
 
   const handleBack = () => {
     if (conversationId) {
-      setSearchParams({});
+      // In a conversation → go back to conversation list
+      setSearchParams({ from: from ?? '' });
     } else if (showNewChat) {
+      // In new chat → go back to conversation list
       setShowNewChat(false);
+    } else if (from) {
+      // In conversation list with referrer → go back to repo list
+      navigate(from);
     } else {
-      navigate(-1);
+      // No referrer → go to dashboard
+      navigate('/dashboard');
     }
   };
 

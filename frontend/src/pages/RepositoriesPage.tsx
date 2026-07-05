@@ -217,7 +217,7 @@ export default function RepositoriesPage() {
                 {noRepoWorkspaces.map((ws) => (
                   <div key={ws.id} className="relative group">
                     <a
-                      href={`/workspace/${ws.id}`}
+                      href={`/workspace/${ws.id}?from=/dashboard`}
                       className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 pr-10"
                     >
                       <span className="text-sm font-semibold text-gray-100 truncate">
@@ -300,7 +300,7 @@ function WorkspacesForGroup({ group, onDelete }: { group: RepoGroup; onDelete: (
           {workspaces.map((ws) => (
             <div key={ws.id} className="relative group">
               <a
-                href={`/workspace/${ws.id}`}
+                href={`/workspace/${ws.id}?from=/dashboard`}
                 className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 pr-10"
               >
                 <span className="text-sm font-semibold text-gray-100 truncate">
