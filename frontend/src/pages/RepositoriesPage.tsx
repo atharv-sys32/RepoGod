@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FolderGit2, ArrowRight, GitBranch, Trash2, Plus } from 'lucide-react';
 import repositoryService from '@/services/repository.service';
@@ -100,26 +100,28 @@ export default function RepositoriesPage() {
   const handleDeleteWorkspace = async (wsId: string) => {
     try {
       await workspaceService.deleteWorkspace(wsId);
-      setNoRepoWorkspaces((prev) => prev.filter((w) => w.id !== wsId));
+      await refreshAll();
     } catch (e) {
       console.error('Failed to delete workspace:', e);
     }
   };
 
+  const refreshAll = useCallback(async () => {
+    const reposData = await repositoryService.getRepositories().catch(() => []);
+    setRepos(reposData);
+    const ws = await import('@/services/workspace.service').then((m) => m.default);
+    const all = await ws.getWorkspaces().catch(() => []);
+    setNoRepoWorkspaces(all.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title })));
+  }, []);
+
   const handleDeleteGroup = async (group: RepoGroup) => {
     for (const repo of group.repos) {
       await repositoryService.deleteRepository(repo.id).catch(() => {});
     }
-    setRepos((prev) => prev.filter((r) => !group.repos.some((gr) => gr.id === r.id)));
     if (selectedGroup?.gitUrl === group.gitUrl && selectedGroup?.status === group.status) {
       setSelectedGroup(null);
     }
-    // Refresh no-repo workspaces since deletion may cascade
-    import('@/services/workspace.service').then(({ default: ws }) => {
-      ws.getWorkspaces()
-        .then((all) => setNoRepoWorkspaces(all.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title }))))
-        .catch(() => {});
-    });
+    await refreshAll();
   };
 
   if (loading) {
