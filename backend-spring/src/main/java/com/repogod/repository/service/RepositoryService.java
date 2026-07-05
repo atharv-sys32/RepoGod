@@ -9,6 +9,7 @@ import com.repogod.repository.mapper.RepositoryMapper;
 import com.repogod.repository.repository.RepositoryJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,17 @@ public class RepositoryService {
                               AiGatewayService aiGatewayService) {
         this.repositoryJpaRepository = repositoryJpaRepository;
         this.aiGatewayService = aiGatewayService;
+    }
+
+    @Scheduled(fixedRate = 6 * 60 * 60 * 1000) // every 6 hours
+    @Transactional
+    public void cleanupOrphanedRepos() {
+        try {
+            int count = repositoryJpaRepository.deleteOrphans();
+            if (count > 0) log.info("Cleaned up {} orphaned repository entries", count);
+        } catch (Exception e) {
+            log.warn("Orphan cleanup skipped: {}", e.getMessage());
+        }
     }
 
     @Transactional
