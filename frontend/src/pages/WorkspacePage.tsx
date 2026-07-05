@@ -60,6 +60,10 @@ export default function WorkspacePage() {
     setShowConvPanel(false);
   };
 
+  const handleNewConversation = () => {
+    setSearchParams({});
+  };
+
   const handleBack = () => {
     if (conversationId) {
       // Has a conversation open → go back to workspace root (no conversation)
@@ -112,12 +116,15 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Conversation Sidebar */}
-      {showConvPanel && (
+      {/* Conversation Sidebar — only when in a conversation */}
+      {conversationId && showConvPanel && (
         <div className="w-56 flex-shrink-0 border-r border-gray-800 flex flex-col overflow-hidden bg-gray-900/50">
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-800">
             <span className="text-xs font-medium text-gray-400">Conversations</span>
-            <button onClick={() => setShowConvPanel(false)} className="text-gray-600 hover:text-gray-400 text-xs">Close</button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleNewConversation} className="text-xs text-indigo-400 hover:text-indigo-300">+ New</button>
+              <button onClick={() => setShowConvPanel(false)} className="text-gray-600 hover:text-gray-400 text-xs">Close</button>
+            </div>
           </div>
           <div className="flex-1 overflow-auto">
             {conversations.length === 0 ? (
@@ -158,9 +165,11 @@ export default function WorkspacePage() {
               <PanelLeftOpen size={16} />
             </button>
           )}
-          <button onClick={() => setShowConvPanel(v => !v)} className="text-gray-500 hover:text-gray-300 transition-colors" title="Conversations">
-            <MessageSquare size={16} />
-          </button>
+          {conversationId && (
+            <button onClick={() => setShowConvPanel(v => !v)} className="text-gray-500 hover:text-gray-300 transition-colors" title="Conversations">
+              <MessageSquare size={16} />
+            </button>
+          )}
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-medium text-gray-200 truncate">
               {workspace.title}
@@ -176,12 +185,20 @@ export default function WorkspacePage() {
         {!conversationId && !isStreaming ? (
           /* No conversation selected — show conversation list */
           <div className="flex-1 overflow-auto p-4 space-y-2">
-            <h2 className="text-sm font-semibold text-gray-200 mb-3">Conversations</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-200">Conversations</h2>
+              <button
+                onClick={handleNewConversation}
+                className="text-xs px-3 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              >
+                + New
+              </button>
+            </div>
             {conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center py-16">
                 <MessageSquare size={28} className="text-indigo-400" />
                 <h3 className="text-base font-semibold text-gray-200">Start a conversation</h3>
-                <p className="text-sm text-gray-500 max-w-xs">Type a message below to start a new conversation.</p>
+                <p className="text-sm text-gray-500 max-w-xs">Click "New" above or type a message to start.</p>
               </div>
             ) : (
               conversations.map((conv) => (

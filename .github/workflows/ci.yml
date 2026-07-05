@@ -6,31 +6,28 @@ on:
   workflow_dispatch:
 
 env:
-  # The registry to push to – GitHub Container Registry in this case
   REGISTRY: ghcr.io
-  # Full name of the repository – used as the image namespace (lowercase for GHCR)
   IMAGE_NAME: ${{ github.repository_owner }}/repogod
 
 jobs:
-  build:
+  backend-spring:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
-    # Build each service separately so we can tag them individually
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push backend-spring
+      - uses: tj-actions/changed-files@v44
+        id: changed-spring
+        with:
+          files: backend-spring/**
+      - name: Build and push
+        if: steps.changed-spring.outputs.any_changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend-spring
@@ -40,7 +37,24 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend-spring:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend-spring:${{ github.sha }}
 
-      - name: Build and push backend-fastapi
+  backend-fastapi:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: tj-actions/changed-files@v44
+        id: changed-fastapi
+        with:
+          files: backend-fastapi/**
+      - name: Build and push
+        if: steps.changed-fastapi.outputs.any_changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend-fastapi
@@ -50,7 +64,24 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend-fastapi:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend-fastapi:${{ github.sha }}
 
-      - name: Build and push frontend
+  frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: tj-actions/changed-files@v44
+        id: changed-frontend
+        with:
+          files: frontend/**
+      - name: Build and push
+        if: steps.changed-frontend.outputs.any_changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
