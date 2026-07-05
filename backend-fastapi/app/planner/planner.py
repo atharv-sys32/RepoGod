@@ -333,15 +333,18 @@ class PlannerOrchestrator:
             )
 
             if tool is None:
-                events.append(
-                    PlannerEvent(
-                        event_type="tool_end",
-                        tool_name=tool_name,
-                        status="failed",
-                        message=f"Unknown tool: {tool_name}",
+                logger.warning(f"Unknown tool '{tool_name}', falling back to knowledge_tool")
+                tool = _TOOL_REGISTRY.get("knowledge_tool")
+                if tool is None:
+                    events.append(
+                        PlannerEvent(
+                            event_type="tool_end",
+                            tool_name=tool_name,
+                            status="failed",
+                            message=f"Unknown tool: {tool_name}",
+                        )
                     )
-                )
-                continue
+                    continue
 
             try:
                 output = await tool.execute(tool_context, step_query, db_session)
