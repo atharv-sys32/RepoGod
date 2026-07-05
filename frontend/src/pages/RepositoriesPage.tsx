@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FolderGit2, ArrowRight, GitBranch } from 'lucide-react';
+import { FolderGit2, ArrowRight, GitBranch, Trash2 } from 'lucide-react';
 import repositoryService from '@/services/repository.service';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { formatRelativeTime } from '@/utils/format';
@@ -14,28 +13,56 @@ interface Repo {
   createdAt: string;
 }
 
+interface RepoGroup {
+  name: string;
+  gitUrl: string;
+  status: string;
+  repos: Repo[];
+}
+
+function groupRepos(repos: Repo[]): RepoGroup[] {
+  const map = new Map<string, RepoGroup>();
+  for (const repo of repos) {
+    const key = `${repo.gitUrl}|${repo.status}`;
+    if (map.has(key)) {
+      map.get(key)!.repos.push(repo);
+    } else {
+      map.set(key, {
+        name: repo.name,
+        gitUrl: repo.gitUrl,
+        status: repo.status,
+        repos: [repo],
+      });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export default function RepositoriesPage() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRepoId, setSelectedRepoId] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<RepoGroup | null>(null);
 
-  useEffect(() => {
+  const loadRepos = () => {
     repositoryService.getRepositories()
       .then((r) => setRepos(r))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
-
-  const handleDeleteRepo = async (repo: Repo) => {
-    try {
-      await repositoryService.deleteRepository(repo.id);
-      setRepos((prev) => prev.filter((r) => r.id !== repo.id));
-    } catch (e) {
-      console.error('Failed to delete repo:', e);
-    }
   };
 
-  const selectedRepo = repos.find((r) => r.id === selectedRepoId);
+  useEffect(() => { loadRepos(); }, []);
+
+  const groups = groupRepos(repos);
+
+  const handleDeleteGroup = async (group: RepoGroup) => {
+    for (const repo of group.repos) {
+      await repositoryService.deleteRepository(repo.id).catch(() => {});
+    }
+    setRepos((prev) => prev.filter((r) => !group.repos.some((gr) => gr.id === r.id)));
+    if (selectedGroup?.gitUrl === group.gitUrl && selectedGroup?.status === group.status) {
+      setSelectedGroup(null);
+    }
+  };
 
   if (loading) {
     return <FullPageSpinner label="Loading repositories..." />;
@@ -46,81 +73,82 @@ export default function RepositoriesPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-100">Repositories</h1>
         <p className="text-gray-500 text-sm mt-1">
-          All imported repositories and their workspaces.
+          All imported repositories grouped by status.
         </p>
       </div>
 
-      {selectedRepo ? (
-        /* Repo selected — show its workspaces */
+      {selectedGroup ? (
         <div>
           <button
-            onClick={() => setSelectedRepoId(null)}
+            onClick={() => setSelectedGroup(null)}
             className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors mb-4"
           >
-            ← All repositories
+            ← Back to all repositories
           </button>
-          <h2 className="text-lg font-semibold text-gray-100 mb-4">
-            {selectedRepo.name}
+          <h2 className="text-lg font-semibold text-gray-100 mb-1">
+            {selectedGroup.name}
           </h2>
-          <p className="text-sm text-gray-500 mb-4">
-            {selectedRepo.gitUrl}
+          <p className="text-xs text-gray-500 mb-4">
+            {selectedGroup.gitUrl} — {selectedGroup.repos.length} instance(s)
           </p>
-          <WorkspacesForRepo repoId={selectedRepoId!} />
+          <WorkspacesForGroup group={selectedGroup} />
         </div>
       ) : (
-        /* Show all repos */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {repos.length === 0 ? (
+          {groups.length === 0 ? (
             <div className="col-span-full text-center py-16 text-gray-500">
               <FolderGit2 size={28} className="mx-auto mb-3 text-indigo-400" />
               <p className="text-sm">No repositories imported yet.</p>
             </div>
           ) : (
-            repos.map((repo) => (
+            groups.map((group) => (
               <div
-                key={repo.id}
+                key={`${group.gitUrl}|${group.status}`}
                 className="relative flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 group"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-900/60 flex items-center justify-center shrink-0">
-                    <FolderGit2 size={16} className="text-emerald-400" />
+                  <div className={cn(
+                    'h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
+                    group.status === 'INDEXED' ? 'bg-emerald-900/60' : 'bg-red-900/60',
+                  )}>
+                    <FolderGit2 size={16} className={group.status === 'INDEXED' ? 'text-emerald-400' : 'text-red-400'} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-100 truncate">
-                      {repo.name}
+                      {group.name}
                     </p>
                     <p className="text-xs text-gray-500 truncate mt-0.5">
-                      {repo.gitUrl}
+                      {group.gitUrl}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-auto pt-1">
                   <div className="flex items-center gap-1.5 text-xs text-gray-600">
                     <GitBranch size={12} />
-                    <span>{formatRelativeTime(repo.createdAt)}</span>
+                    <span>{group.repos.length} instance(s)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={cn(
                       'text-xs px-2 py-0.5 rounded',
-                      repo.status === 'INDEXED' ? 'bg-emerald-900/30 text-emerald-400' :
-                      repo.status === 'FAILED' ? 'bg-red-900/30 text-red-400' :
+                      group.status === 'INDEXED' ? 'bg-emerald-900/30 text-emerald-400' :
+                      group.status === 'FAILED' ? 'bg-red-900/30 text-red-400' :
                       'bg-gray-800 text-gray-400'
                     )}>
-                      {repo.status}
+                      {group.status}
                     </span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteRepo(repo); }}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group); }}
                       className="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                      title="Delete repository"
+                      title={`Delete all ${group.status} instances of ${group.name}`}
                     >
-                      ×
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
                 <button
-                  onClick={() => setSelectedRepoId(repo.id)}
+                  onClick={() => setSelectedGroup(group)}
                   className="absolute inset-0 rounded-xl"
-                  aria-label={`View workspaces for ${repo.name}`}
+                  aria-label={`View workspaces for ${group.name} (${group.status})`}
                 />
               </div>
             ))
@@ -131,18 +159,21 @@ export default function RepositoriesPage() {
   );
 }
 
-function WorkspacesForRepo({ repoId }: { repoId: string }) {
-  const [workspaces, setWorkspaces] = useState<Array<{ id: string; title: string }>>([]);
+function WorkspacesForGroup({ group }: { group: RepoGroup }) {
+  const [workspaces, setWorkspaces] = useState<Array<{ id: string; title: string; repositoryId?: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     import('@/services/workspace.service').then(({ default: ws }) => {
       ws.getWorkspaces()
-        .then((all) => setWorkspaces(all.filter((w) => w.repositoryId === repoId)))
+        .then((all) => {
+          const repoIds = new Set(group.repos.map((r) => r.id));
+          setWorkspaces(all.filter((w) => w.repositoryId && repoIds.has(w.repositoryId)));
+        })
         .catch(() => {})
         .finally(() => setLoading(false));
     });
-  }, [repoId]);
+  }, [group]);
 
   if (loading) {
     return <FullPageSpinner label="Loading workspaces..." />;
@@ -156,16 +187,16 @@ function WorkspacesForRepo({ repoId }: { repoId: string }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {workspaces.map((ws) => (
-            <Link
+            <a
               key={ws.id}
-              to={`/workspace/${ws.id}`}
+              href={`/workspace/${ws.id}`}
               className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150"
             >
               <span className="text-sm font-semibold text-gray-100 truncate">
                 {ws.title}
               </span>
               <ArrowRight size={15} className="text-gray-600 shrink-0 ml-2" />
-            </Link>
+            </a>
           ))}
         </div>
       )}
