@@ -87,11 +87,13 @@ export default function RepositoriesPage() {
   // Auto-select repo group from URL params (when navigating back from workspace)
   useEffect(() => {
     if (backRepoUrl && backStatus && repos.length > 0 && !selectedGroup) {
-      const groups = groupRepos(repos);
-      const match = groups.find((g) => g.gitUrl === backRepoUrl && g.status === backStatus);
+      const allGroups = groupRepos(repos);
+      const match = allGroups.find((g) => g.gitUrl === backRepoUrl && g.status === backStatus);
       if (match) setSelectedGroup(match);
     }
   }, [repos, backRepoUrl, backStatus]);
+
+  const groups = groupRepos(repos);
 
   const handleDeleteWorkspace = async (wsId: string) => {
     try {
@@ -227,7 +229,7 @@ export default function RepositoriesPage() {
                 {noRepoWorkspaces.map((ws) => (
                   <div key={ws.id} className="relative group">
                     <a
-                      href={`/workspace/${ws.id}?from=/dashboard?repoUrl=${encodeURIComponent(group.gitUrl)}&status=${group.status}`}
+                      href={`/workspace/${ws.id}?from=/dashboard`}
                       className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 pr-10"
                     >
                       <span className="text-sm font-semibold text-gray-100 truncate">
