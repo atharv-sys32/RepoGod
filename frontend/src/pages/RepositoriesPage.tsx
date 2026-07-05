@@ -83,6 +83,15 @@ export default function RepositoriesPage() {
 
   const groups = groupRepos(repos);
 
+  const handleDeleteWorkspace = async (wsId: string) => {
+    try {
+      await workspaceService.deleteWorkspace(wsId);
+      setNoRepoWorkspaces((prev) => prev.filter((w) => w.id !== wsId));
+    } catch (e) {
+      console.error('Failed to delete workspace:', e);
+    }
+  };
+
   const handleDeleteGroup = async (group: RepoGroup) => {
     for (const repo of group.repos) {
       await repositoryService.deleteRepository(repo.id).catch(() => {});
@@ -134,7 +143,7 @@ export default function RepositoriesPage() {
           <p className="text-xs text-gray-500 mb-4">
             {selectedGroup.gitUrl} — {selectedGroup.repos.length} instance(s)
           </p>
-          <WorkspacesForGroup group={selectedGroup} />
+          <WorkspacesForGroup group={selectedGroup} onDelete={handleDeleteWorkspace} />
         </div>
       ) : (
         <div>
@@ -206,16 +215,24 @@ export default function RepositoriesPage() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {noRepoWorkspaces.map((ws) => (
-                  <a
-                    key={ws.id}
-                    href={`/workspace/${ws.id}`}
-                    className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150"
-                  >
-                    <span className="text-sm font-semibold text-gray-100 truncate">
-                      {ws.title}
+                  <div key={ws.id} className="relative group">
+                    <a
+                      href={`/workspace/${ws.id}`}
+                      className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 pr-10"
+                    >
+                      <span className="text-sm font-semibold text-gray-100 truncate">
+                        {ws.title}
+                      </span>
+                      <ArrowRight size={15} className="text-gray-600 shrink-0 ml-2" />
+                    </a>
+                    <span
+                      onClick={(e) => { e.stopPropagation(); handleDeleteWorkspace(ws.id); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      title="Delete workspace"
+                    >
+                      <Trash2 size={14} />
                     </span>
-                    <ArrowRight size={15} className="text-gray-600 shrink-0 ml-2" />
-                  </a>
+                  </div>
                 ))}
               </div>
             </div>
@@ -253,7 +270,7 @@ export default function RepositoriesPage() {
   );
 }
 
-function WorkspacesForGroup({ group }: { group: RepoGroup }) {
+function WorkspacesForGroup({ group, onDelete }: { group: RepoGroup; onDelete: (wsId: string) => void }) {
   const [workspaces, setWorkspaces] = useState<Array<{ id: string; title: string; repositoryId?: string }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -281,16 +298,24 @@ function WorkspacesForGroup({ group }: { group: RepoGroup }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {workspaces.map((ws) => (
-            <a
-              key={ws.id}
-              href={`/workspace/${ws.id}`}
-              className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150"
-            >
-              <span className="text-sm font-semibold text-gray-100 truncate">
-                {ws.title}
+            <div key={ws.id} className="relative group">
+              <a
+                href={`/workspace/${ws.id}`}
+                className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 pr-10"
+              >
+                <span className="text-sm font-semibold text-gray-100 truncate">
+                  {ws.title}
+                </span>
+                <ArrowRight size={15} className="text-gray-600 shrink-0 ml-2" />
+              </a>
+              <span
+                onClick={(e) => { e.stopPropagation(); onDelete(ws.id); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title="Delete workspace"
+              >
+                <Trash2 size={14} />
               </span>
-              <ArrowRight size={15} className="text-gray-600 shrink-0 ml-2" />
-            </a>
+            </div>
           ))}
         </div>
       )}
