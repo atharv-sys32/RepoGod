@@ -114,7 +114,7 @@ export default function WorkspacePage() {
     } else if (showNewChat) {
       setShowNewChat(false);
     } else {
-      navigate('/dashboard');
+      navigate(-1);
     }
   };
 
@@ -208,11 +208,9 @@ export default function WorkspacePage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-800 bg-gray-950">
-          {(conversationId || showNewChat) && (
-            <button onClick={handleBack} className="text-gray-500 hover:text-gray-300 transition-colors" title="Go back">
-              <ArrowLeft size={16} />
-            </button>
-          )}
+          <button onClick={handleBack} className="text-gray-500 hover:text-gray-300 transition-colors" title="Go back">
+            <ArrowLeft size={16} />
+          </button>
           {!showRepoPanel && (
             <button onClick={() => setShowRepoPanel(true)} title="Show file tree" className="text-gray-500 hover:text-gray-300 transition-colors">
               <PanelLeftOpen size={16} />
