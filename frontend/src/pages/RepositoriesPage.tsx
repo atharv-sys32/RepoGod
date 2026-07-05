@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FolderGit2, ArrowRight, GitBranch, Trash2, Plus } from 'lucide-react';
 import repositoryService from '@/services/repository.service';
 import workspaceService from '@/services/workspace.service';
@@ -42,6 +42,9 @@ function groupRepos(repos: Repo[]): RepoGroup[] {
 
 export default function RepositoriesPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const backRepoUrl = searchParams.get('repoUrl');
+  const backStatus = searchParams.get('status');
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<RepoGroup | null>(null);
@@ -81,7 +84,14 @@ export default function RepositoriesPage() {
     });
   }, []);
 
-  const groups = groupRepos(repos);
+  // Auto-select repo group from URL params (when navigating back from workspace)
+  useEffect(() => {
+    if (backRepoUrl && backStatus && repos.length > 0 && !selectedGroup) {
+      const groups = groupRepos(repos);
+      const match = groups.find((g) => g.gitUrl === backRepoUrl && g.status === backStatus);
+      if (match) setSelectedGroup(match);
+    }
+  }, [repos, backRepoUrl, backStatus]);
 
   const handleDeleteWorkspace = async (wsId: string) => {
     try {
@@ -217,7 +227,7 @@ export default function RepositoriesPage() {
                 {noRepoWorkspaces.map((ws) => (
                   <div key={ws.id} className="relative group">
                     <a
-                      href={`/workspace/${ws.id}?from=/dashboard`}
+                      href={`/workspace/${ws.id}?from=/dashboard?repoUrl=${encodeURIComponent(group.gitUrl)}&status=${group.status}`}
                       className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 pr-10"
                     >
                       <span className="text-sm font-semibold text-gray-100 truncate">
