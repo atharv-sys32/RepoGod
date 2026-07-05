@@ -75,6 +75,8 @@ export function useChatStream({
     if (initialConversationId) {
       conversationIdRef.current = initialConversationId;
       loadMessages(initialConversationId);
+    } else {
+      conversationIdRef.current = undefined;
     }
   }, [initialConversationId]);
 

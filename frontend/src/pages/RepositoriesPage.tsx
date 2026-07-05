@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FolderGit2, ArrowRight, GitBranch, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FolderGit2, ArrowRight, GitBranch, Trash2, Plus } from 'lucide-react';
 import repositoryService from '@/services/repository.service';
+import workspaceService from '@/services/workspace.service';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { formatRelativeTime } from '@/utils/format';
 import { cn } from '@/utils/cn';
@@ -39,10 +41,29 @@ function groupRepos(repos: Repo[]): RepoGroup[] {
 }
 
 export default function RepositoriesPage() {
+  const navigate = useNavigate();
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<RepoGroup | null>(null);
   const [noRepoWorkspaces, setNoRepoWorkspaces] = useState<Array<{ id: string; title: string }>>([]);
+  const [showNewWs, setShowNewWs] = useState(false);
+  const [newWsTitle, setNewWsTitle] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const handleCreateWorkspace = async (repoId?: string) => {
+    if (!newWsTitle.trim()) return;
+    setCreating(true);
+    try {
+      const ws = await workspaceService.createWorkspace(newWsTitle.trim(), repoId);
+      setShowNewWs(false);
+      setNewWsTitle('');
+      navigate(`/workspace/${ws.id}`);
+    } catch (e) {
+      console.error('Failed to create workspace:', e);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const loadRepos = () => {
     repositoryService.getRepositories()
@@ -84,11 +105,19 @@ export default function RepositoriesPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-100">Repositories</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          All imported repositories grouped by status.
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-100">Repositories</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            All imported repositories grouped by status.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowNewWs(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+        >
+          <Plus size={16} /> New Workspace
+        </button>
       </div>
 
       {selectedGroup ? (
@@ -191,6 +220,33 @@ export default function RepositoriesPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {showNewWs && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-6 py-4 flex items-center gap-3 z-50">
+          <input
+            type="text"
+            value={newWsTitle}
+            onChange={(e) => setNewWsTitle(e.target.value)}
+            placeholder="Workspace name..."
+            className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-600"
+            autoFocus
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCreateWorkspace(); if (e.key === 'Escape') setShowNewWs(false); }}
+          />
+          <button
+            onClick={() => handleCreateWorkspace()}
+            disabled={creating || !newWsTitle.trim()}
+            className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-50 transition-colors"
+          >
+            {creating ? 'Creating...' : 'Create'}
+          </button>
+          <button
+            onClick={() => { setShowNewWs(false); setNewWsTitle(''); }}
+            className="px-3 py-2 text-sm text-gray-500 hover:text-gray-300"
+          >
+            Cancel
+          </button>
         </div>
       )}
     </div>
