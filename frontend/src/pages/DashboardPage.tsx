@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, FolderGit2, LayoutGrid } from 'lucide-react';
 import { useWorkspaces, useCreateWorkspace } from '@/hooks/useWorkspaces';
 import repositoryService from '@/services/repository.service';
@@ -11,7 +11,12 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const { data: workspaces, isLoading: wsLoading } = useWorkspaces();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [repoCount, setRepoCount] = useState(0);
   const createWorkspace = useCreateWorkspace();
+
+  useEffect(() => {
+    repositoryService.getRepositories().then((repos) => setRepoCount(repos.length)).catch(() => {});
+  }, []);
 
   const handleCreate = async (title: string, repoUrl?: string) => {
     let repoId: string | undefined;
@@ -56,9 +61,7 @@ export default function DashboardPage() {
             <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Repositories</span>
             <FolderGit2 size={18} className="text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-gray-100">
-            {new Set(workspaces?.filter((w) => w.repositoryId).map((w) => w.repositoryId)).size ?? 0}
-          </p>
+          <p className="text-2xl font-bold text-gray-100">{repoCount}</p>
         </div>
       </div>
 

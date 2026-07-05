@@ -42,6 +42,7 @@ export default function RepositoriesPage() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<RepoGroup | null>(null);
+  const [noRepoWorkspaces, setNoRepoWorkspaces] = useState<Array<{ id: string; title: string }>>([]);
 
   const loadRepos = () => {
     repositoryService.getRepositories()
@@ -50,7 +51,14 @@ export default function RepositoriesPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadRepos(); }, []);
+  useEffect(() => {
+    loadRepos();
+    import('@/services/workspace.service').then(({ default: ws }) => {
+      ws.getWorkspaces()
+        .then((all) => setNoRepoWorkspaces(all.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title }))))
+        .catch(() => {});
+    });
+  }, []);
 
   const groups = groupRepos(repos);
 
@@ -62,6 +70,12 @@ export default function RepositoriesPage() {
     if (selectedGroup?.gitUrl === group.gitUrl && selectedGroup?.status === group.status) {
       setSelectedGroup(null);
     }
+    // Refresh no-repo workspaces since deletion may cascade
+    import('@/services/workspace.service').then(({ default: ws }) => {
+      ws.getWorkspaces()
+        .then((all) => setNoRepoWorkspaces(all.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title }))))
+        .catch(() => {});
+    });
   };
 
   if (loading) {
@@ -94,14 +108,15 @@ export default function RepositoriesPage() {
           <WorkspacesForGroup group={selectedGroup} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groups.length === 0 ? (
-            <div className="col-span-full text-center py-16 text-gray-500">
-              <FolderGit2 size={28} className="mx-auto mb-3 text-indigo-400" />
-              <p className="text-sm">No repositories imported yet.</p>
-            </div>
-          ) : (
-            groups.map((group) => (
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {groups.length === 0 ? (
+              <div className="col-span-full text-center py-16 text-gray-500">
+                <FolderGit2 size={28} className="mx-auto mb-3 text-indigo-400" />
+                <p className="text-sm">No repositories imported yet.</p>
+              </div>
+            ) : (
+              groups.map((group) => (
               <div
                 key={`${group.gitUrl}|${group.status}`}
                 className="relative flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 group"
@@ -153,6 +168,29 @@ export default function RepositoriesPage() {
               </div>
             ))
           )}
+          </div>
+
+          {noRepoWorkspaces.length > 0 && (
+            <div>
+              <h2 className="text-base font-semibold text-gray-200 mb-3">
+                No Repository ({noRepoWorkspaces.length})
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {noRepoWorkspaces.map((ws) => (
+                  <a
+                    key={ws.id}
+                    href={`/workspace/${ws.id}`}
+                    className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150"
+                  >
+                    <span className="text-sm font-semibold text-gray-100 truncate">
+                      {ws.title}
+                    </span>
+                    <ArrowRight size={15} className="text-gray-600 shrink-0 ml-2" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -168,7 +206,7 @@ function WorkspacesForGroup({ group }: { group: RepoGroup }) {
       ws.getWorkspaces()
         .then((all) => {
           const repoIds = new Set(group.repos.map((r) => r.id));
-          setWorkspaces(all.filter((w) => w.repositoryId && repoIds.has(w.repositoryId)));
+          setWorkspaces(all.filter((w) => repoIds.has(w.repositoryId ?? '')));
         })
         .catch(() => {})
         .finally(() => setLoading(false));
