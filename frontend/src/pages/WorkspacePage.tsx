@@ -8,7 +8,7 @@ import { ChatPanel } from '@/features/chat/ChatPanel';
 import { PlannerTimeline } from '@/features/planner/PlannerTimeline';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { cn } from '@/utils/cn';
-import { PanelLeftOpen, PanelRightOpen, GitBranch, ArrowLeft, MessageSquare, Plus } from 'lucide-react';
+import { PanelLeftOpen, PanelRightOpen, GitBranch, ArrowLeft, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import conversationService from '@/services/conversation.service';
 import repositoryService from '@/services/repository.service';
 import workspaceService from '@/services/workspace.service';
@@ -73,6 +73,17 @@ export default function WorkspacePage() {
   const handleNewConversation = () => {
     setSearchParams({});
     setShowNewChat(true);
+  };
+
+  const handleDeleteConversation = async (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await conversationService.deleteConversation(convId);
+      setConversations((prev) => prev.filter((c) => c.id !== convId));
+      if (conversationId === convId) setSearchParams({});
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
   };
 
   const handleAttachRepo = async () => {
@@ -171,13 +182,20 @@ export default function WorkspacePage() {
                   key={conv.id}
                   onClick={() => handleSelectConversation(conv.id)}
                   className={cn(
-                    'w-full text-left px-3 py-2.5 text-sm border-b border-gray-800/50 hover:bg-gray-800/50 transition-colors',
+                    'w-full text-left px-3 py-2.5 text-sm border-b border-gray-800/50 hover:bg-gray-800/50 transition-colors group',
                     conv.id === conversationId ? 'bg-indigo-900/30 text-indigo-300' : 'text-gray-400',
                   )}
                 >
                   <div className="flex items-center gap-2">
                     <MessageSquare size={12} className="shrink-0" />
-                    <span className="truncate">{conv.title}</span>
+                    <span className="truncate flex-1">{conv.title}</span>
+                    <span
+                      onClick={(e) => handleDeleteConversation(conv.id, e)}
+                      className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      title="Delete conversation"
+                    >
+                      <Trash2 size={12} />
+                    </span>
                   </div>
                   {conv.messageCount > 0 && (
                     <span className="text-xs text-gray-600 ml-6">{conv.messageCount} messages</span>
@@ -211,6 +229,15 @@ export default function WorkspacePage() {
               {workspace.title}
             </h1>
           </div>
+          {conversationId && (
+            <button
+              onClick={(e) => handleDeleteConversation(conversationId, e)}
+              className="text-gray-600 hover:text-red-400 transition-colors"
+              title="Delete this conversation"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
           {!workspace.repositoryId && !showAttachRepo && (
             <button
               onClick={() => setShowAttachRepo(true)}
@@ -272,14 +299,22 @@ export default function WorkspacePage() {
               </div>
             ) : (
               conversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => handleSelectConversation(conv.id)}
-                  className="w-full text-left rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 hover:border-indigo-600/50 transition-colors"
-                >
-                  <p className="text-sm font-medium text-gray-200">{conv.title}</p>
-                  <p className="text-xs text-gray-500 mt-1">{conv.messageCount} messages</p>
-                </button>
+                <div key={conv.id} className="relative group">
+                  <button
+                    onClick={() => handleSelectConversation(conv.id)}
+                    className="w-full text-left rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 hover:border-indigo-600/50 transition-colors pr-10"
+                  >
+                    <p className="text-sm font-medium text-gray-200">{conv.title}</p>
+                    <p className="text-xs text-gray-500 mt-1">{conv.messageCount} messages</p>
+                  </button>
+                  <span
+                    onClick={(e) => handleDeleteConversation(conv.id, e)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    title="Delete conversation"
+                  >
+                    <Trash2 size={14} />
+                  </span>
+                </div>
               ))
             )}
           </div>
