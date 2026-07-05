@@ -57,7 +57,7 @@ export default function DashboardPage() {
             <FolderGit2 size={18} className="text-emerald-400" />
           </div>
           <p className="text-2xl font-bold text-gray-100">
-            {workspaces?.filter((w) => w.repositoryId).length ?? 0}
+            {new Set(workspaces?.filter((w) => w.repositoryId).map((w) => w.repositoryId)).size ?? 0}
           </p>
         </div>
       </div>

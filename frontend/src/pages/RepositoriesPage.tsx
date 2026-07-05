@@ -21,20 +21,19 @@ export default function RepositoriesPage() {
 
   useEffect(() => {
     repositoryService.getRepositories()
-      .then((all) => {
-        // Deduplicate by gitUrl — keep the latest entry per URL
-        const seen = new Map<string, Repo>();
-        for (const r of all) {
-          const existing = seen.get(r.gitUrl);
-          if (!existing || new Date(r.createdAt) > new Date(existing.createdAt)) {
-            seen.set(r.gitUrl, r);
-          }
-        }
-        setRepos(Array.from(seen.values()));
-      })
+      .then((r) => setRepos(r))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDeleteRepo = async (repo: Repo) => {
+    try {
+      await repositoryService.deleteRepository(repo.id);
+      setRepos((prev) => prev.filter((r) => r.id !== repo.id));
+    } catch (e) {
+      console.error('Failed to delete repo:', e);
+    }
+  };
 
   const selectedRepo = repos.find((r) => r.id === selectedRepoId);
 
@@ -78,10 +77,9 @@ export default function RepositoriesPage() {
             </div>
           ) : (
             repos.map((repo) => (
-              <button
+              <div
                 key={repo.id}
-                onClick={() => setSelectedRepoId(repo.id)}
-                className="flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 text-left"
+                className="relative flex flex-col gap-3 rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-indigo-600/50 hover:bg-gray-800/60 transition-all duration-150 group"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="h-8 w-8 rounded-lg bg-emerald-900/60 flex items-center justify-center shrink-0">
@@ -101,16 +99,30 @@ export default function RepositoriesPage() {
                     <GitBranch size={12} />
                     <span>{formatRelativeTime(repo.createdAt)}</span>
                   </div>
-                  <span className={cn(
-                    'text-xs px-2 py-0.5 rounded',
-                    repo.status === 'INDEXED' ? 'bg-emerald-900/30 text-emerald-400' :
-                    repo.status === 'FAILED' ? 'bg-red-900/30 text-red-400' :
-                    'bg-gray-800 text-gray-400'
-                  )}>
-                    {repo.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      'text-xs px-2 py-0.5 rounded',
+                      repo.status === 'INDEXED' ? 'bg-emerald-900/30 text-emerald-400' :
+                      repo.status === 'FAILED' ? 'bg-red-900/30 text-red-400' :
+                      'bg-gray-800 text-gray-400'
+                    )}>
+                      {repo.status}
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteRepo(repo); }}
+                      className="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete repository"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
-              </button>
+                <button
+                  onClick={() => setSelectedRepoId(repo.id)}
+                  className="absolute inset-0 rounded-xl"
+                  aria-label={`View workspaces for ${repo.name}`}
+                />
+              </div>
             ))
           )}
         </div>
