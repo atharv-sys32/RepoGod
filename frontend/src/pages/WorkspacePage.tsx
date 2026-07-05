@@ -123,15 +123,13 @@ export default function WorkspacePage() {
       setShowNewChat(false);
     } else if (from) {
       // In conversation list with referrer → go back to repo list
-      // from is like "/dashboard?repoUrl=xxx&status=yyy"
-      // Navigate directly with all params
-      const url = new URL(from, window.location.origin);
-      const repoUrl = url.searchParams.get('repoUrl');
-      const status = url.searchParams.get('status');
+      // repoUrl and status are at top-level URL, not inside from
+      const repoUrl = searchParams.get('repoUrl');
+      const status = searchParams.get('status');
       if (repoUrl && status) {
-        navigate(`/dashboard?repoUrl=${repoUrl}&status=${status}`);
+        navigate(`/dashboard?repoUrl=${encodeURIComponent(repoUrl)}&status=${status}`);
       } else {
-        navigate('/dashboard');
+        navigate(from);
       }
     } else {
       // No referrer → go to dashboard
