@@ -215,7 +215,7 @@ export default function WorkspacePage() {
                     <span className="truncate flex-1">{conv.title}</span>
                     <span
                       onClick={(e) => handleDeleteConversation(conv.id, e)}
-                      className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 z-10 relative"
                       title="Delete conversation"
                     >
                       <Trash2 size={12} />

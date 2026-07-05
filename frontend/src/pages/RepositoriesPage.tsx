@@ -205,7 +205,7 @@ export default function RepositoriesPage() {
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group); }}
-                      className="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      className="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 z-10 relative"
                       title={`Delete all ${group.status} instances of ${group.name}`}
                     >
                       <Trash2 size={14} />
@@ -241,7 +241,7 @@ export default function RepositoriesPage() {
                     </a>
                     <span
                       onClick={(e) => { e.stopPropagation(); handleDeleteWorkspace(ws.id); }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
                       title="Delete workspace"
                     >
                       <Trash2 size={14} />
