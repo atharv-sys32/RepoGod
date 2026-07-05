@@ -138,19 +138,19 @@ const chatService = {
                 default:
                   // Backend sends events as JSON with event_type field
                   try {
-                    const backendEvent = JSON.parse(dataStr) as Record<string, unknown>;
-                    if (backendEvent.event_type) {
-                      const be = backendEvent as unknown as BackendEvent;
-                      const stepToolName = be.tool_name ?? 'planner';
+                    const parsedEvent = JSON.parse(dataStr) as Record<string, unknown>;
+                    if (parsedEvent.event_type) {
+                      const stepToolName = String(parsedEvent.tool_name ?? 'planner');
+                      const evType = String(parsedEvent.event_type);
+                      const evStatus = String(parsedEvent.status ?? 'completed');
                       const stepStatus: PlannerStepData['status'] =
-                        be.event_type.endsWith('_start') ? 'running' :
-                        be.event_type === 'done' ? 'complete' :
-                        be.status === 'failed' ? 'error' : 'complete';
+                        evType.endsWith('_start') ? 'running' :
+                        evType === 'done' ? 'complete' :
+                        evStatus === 'failed' ? 'error' : 'complete';
                       const step: PlannerStepData = {
-                        stepId: `${be.event_type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                        stepId: `${evType}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                         toolName: stepToolName,
                         status: stepStatus,
-                        output: be.message || undefined,
                       };
                       handlers.onPlannerStep?.(step);
                     }
