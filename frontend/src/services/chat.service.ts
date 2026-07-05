@@ -17,6 +17,14 @@ export interface ContentDeltaData {
   text: string;
 }
 
+export interface BackendEvent {
+  event_type: string;
+  tool_name: string | null;
+  status: string;
+  message: string;
+  data: unknown;
+}
+
 export interface PlannerStepData {
   stepId: string;
   toolName: string;
@@ -128,22 +136,23 @@ const chatService = {
                   handlers.onDone?.();
                   return;
                 default:
-                  // Fallback: parse as JSON SSEEvent
+                  // Backend sends events as JSON with event_type field
                   try {
-                    const parsed = JSON.parse(dataStr) as SSEEvent;
-                    handlers.onEvent?.(parsed);
-                    if (parsed.type === 'content_delta') {
-                      const text = (parsed.data as ContentDeltaData)?.text ?? '';
-                      if (text) handlers.onMessage?.(text);
-                    } else if (parsed.type === 'planner_step') {
-                      handlers.onPlannerStep?.(parsed.data as PlannerStepData);
-                    } else if (parsed.type === 'done' || parsed.type === 'message_stop') {
-                      handlers.onDone?.();
-                      return;
-                    } else if (parsed.type === 'error') {
-                      handlers.onError?.(String(parsed.data));
-                      abortController.abort();
-                      return;
+                    const backendEvent = JSON.parse(dataStr) as Record<string, unknown>;
+                    if (backendEvent.event_type) {
+                      const be = backendEvent as unknown as BackendEvent;
+                      const stepToolName = be.tool_name ?? 'planner';
+                      const stepStatus: PlannerStepData['status'] =
+                        be.event_type.endsWith('_start') ? 'running' :
+                        be.event_type === 'done' ? 'complete' :
+                        be.status === 'failed' ? 'error' : 'complete';
+                      const step: PlannerStepData = {
+                        stepId: `${be.event_type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                        toolName: stepToolName,
+                        status: stepStatus,
+                        output: be.message || undefined,
+                      };
+                      handlers.onPlannerStep?.(step);
                     }
                   } catch { /* skip */ }
                   break;
