@@ -88,7 +88,9 @@ export default function RepositoriesPage() {
   useEffect(() => {
     if (backRepoUrl && backStatus && repos.length > 0 && !selectedGroup) {
       const allGroups = groupRepos(repos);
-      const match = allGroups.find((g) => g.gitUrl === backRepoUrl && g.status === backStatus);
+      const match = allGroups.find((g) =>
+        g.gitUrl.includes(backRepoUrl) && g.status === backStatus
+      );
       if (match) setSelectedGroup(match);
     }
   }, [repos, backRepoUrl, backStatus]);

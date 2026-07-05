@@ -112,7 +112,12 @@ export default function WorkspacePage() {
   const handleBack = () => {
     if (conversationId) {
       // In a conversation → go back to conversation list
-      setSearchParams({ from: from ?? '' });
+      // Preserve all params (repoUrl, status, from) but remove conversation
+      const params: Record<string, string> = {};
+      for (const [key, value] of searchParams.entries()) {
+        if (key !== 'conversation') params[key] = value;
+      }
+      setSearchParams(params);
     } else if (showNewChat) {
       // In new chat → go back to conversation list
       setShowNewChat(false);
