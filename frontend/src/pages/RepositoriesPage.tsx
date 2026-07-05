@@ -49,6 +49,7 @@ export default function RepositoriesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<RepoGroup | null>(null);
   const [noRepoWorkspaces, setNoRepoWorkspaces] = useState<Array<{ id: string; title: string }>>([]);
+  const [groupWsCount, setGroupWsCount] = useState<Record<string, number>>({});
   const [showNewWs, setShowNewWs] = useState(false);
   const [newWsTitle, setNewWsTitle] = useState('');
   const [creating, setCreating] = useState(false);
@@ -75,8 +76,20 @@ export default function RepositoriesPage() {
       .finally(() => setLoading(false));
   };
 
+  const loadWsCounts = useCallback(async () => {
+    const allWs = await (await import('@/services/workspace.service')).default.getWorkspaces().catch(() => []);
+    const counts: Record<string, number> = {};
+    for (const w of allWs) {
+      if (w.repositoryId) {
+        counts[w.repositoryId] = (counts[w.repositoryId] ?? 0) + 1;
+      }
+    }
+    setGroupWsCount(counts);
+  }, []);
+
   useEffect(() => {
     loadRepos();
+    loadWsCounts();
     import('@/services/workspace.service').then(({ default: ws }) => {
       ws.getWorkspaces()
         .then((all) => setNoRepoWorkspaces(all.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title }))))
@@ -111,6 +124,13 @@ export default function RepositoriesPage() {
     const allWs = await (await import('@/services/workspace.service')).default.getWorkspaces().catch(() => []);
     setRepos(reposData);
     setNoRepoWorkspaces(allWs.filter((w) => !w.repositoryId).map((w) => ({ id: w.id, title: w.title })));
+    const counts: Record<string, number> = {};
+    for (const w of allWs) {
+      if (w.repositoryId) {
+        counts[w.repositoryId] = (counts[w.repositoryId] ?? 0) + 1;
+      }
+    }
+    setGroupWsCount(counts);
     setSelectedGroup(null);
   }, []);
 
@@ -191,7 +211,7 @@ export default function RepositoriesPage() {
                 <div className="flex items-center justify-between mt-auto pt-1">
                   <div className="flex items-center gap-1.5 text-xs text-gray-600">
                     <GitBranch size={12} />
-                    <span>{group.repos.length} instance(s)</span>
+                    <span>{group.repos.reduce((sum, r) => sum + (groupWsCount[r.id] ?? 0), 0)} workspace(s)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={cn(
