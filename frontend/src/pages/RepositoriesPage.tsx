@@ -86,13 +86,11 @@ export default function RepositoriesPage() {
 
   // Auto-select repo group from URL params (when navigating back from workspace)
   useEffect(() => {
-    console.log('[DEBUG] backRepoUrl:', backRepoUrl, 'backStatus:', backStatus, 'reposLen:', repos.length, 'selected:', selectedGroup);
     if (backRepoUrl && backStatus && repos.length > 0 && !selectedGroup) {
       const allGroups = groupRepos(repos);
       const match = allGroups.find((g) =>
         g.gitUrl.includes(backRepoUrl) && g.status === backStatus
       );
-      console.log('[DEBUG] match:', match?.name, match?.status, 'found:', !!match);
       if (match) setSelectedGroup(match);
     }
   }, [repos, backRepoUrl, backStatus]);
