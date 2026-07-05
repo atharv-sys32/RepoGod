@@ -123,13 +123,21 @@ export default function WorkspacePage() {
       setShowNewChat(false);
     } else if (from) {
       // In conversation list with referrer → go back to repo list
-      // repoUrl and status are at top-level URL, not inside from
-      const repoUrl = searchParams.get('repoUrl');
-      const status = searchParams.get('status');
+      // repoUrl might be in from value or at top level
+      let repoUrl = searchParams.get('repoUrl');
+      let status = searchParams.get('status');
+      if (!repoUrl || !status) {
+        // Try parsing inside from value
+        try {
+          const url = new URL(from, window.location.origin);
+          repoUrl = repoUrl || url.searchParams.get('repoUrl');
+          status = status || url.searchParams.get('status');
+        } catch {}
+      }
       if (repoUrl && status) {
         navigate(`/dashboard?repoUrl=${encodeURIComponent(repoUrl)}&status=${status}`);
       } else {
-        navigate(from);
+        navigate('/dashboard');
       }
     } else {
       // No referrer → go to dashboard
