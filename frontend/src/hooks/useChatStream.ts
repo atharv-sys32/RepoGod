@@ -68,25 +68,15 @@ export function useChatStream({
     }
   }, []);
 
-  // Load past messages when an existing conversation ID is provided,
-  // or fetch the latest conversation for this workspace
+  // Load past messages when a conversation ID is provided
   useEffect(() => {
     setMessages([]);
     setPlannerEvents([]);
     if (initialConversationId) {
       conversationIdRef.current = initialConversationId;
       loadMessages(initialConversationId);
-    } else if (workspaceId) {
-      conversationService.getConversations(workspaceId).then((convs) => {
-        if (convs && convs.length > 0) {
-          const latest = convs[convs.length - 1]; // last = most recent
-          conversationIdRef.current = latest.id;
-          onConversationCreated?.(latest.id);
-          loadMessages(latest.id);
-        }
-      }).catch(() => {});
     }
-  }, [initialConversationId, workspaceId, onConversationCreated]);
+  }, [initialConversationId]);
 
   const sendMessage = useCallback(
     async (prompt: string) => {
@@ -179,6 +169,13 @@ export function useChatStream({
     conversationIdRef.current = undefined;
   }, []);
 
+  const switchConversation = useCallback(async (convId: string) => {
+    conversationIdRef.current = convId;
+    setMessages([]);
+    setPlannerEvents([]);
+    await loadMessages(convId);
+  }, [loadMessages]);
+
   return {
     messages,
     plannerEvents,
@@ -187,6 +184,7 @@ export function useChatStream({
     sendMessage,
     cancelStream,
     clearMessages,
+    switchConversation,
     conversationId: conversationIdRef.current,
   };
 }
