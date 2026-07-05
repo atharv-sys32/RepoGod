@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -77,6 +78,21 @@ public class WorkspaceService {
             throw new ResourceNotFoundException("Workspace", id);
         }
         entity.setLastOpened(OffsetDateTime.now());
+        return WorkspaceMapper.toDto(workspaceRepository.save(entity));
+    }
+
+    @Transactional
+    public WorkspaceDto update(UUID id, UUID userId, Map<String, Object> body) {
+        WorkspaceEntity entity = workspaceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace", id));
+        if (!entity.getUserId().equals(userId)) {
+            throw new ResourceNotFoundException("Workspace", id);
+        }
+        if (body.containsKey("repositoryId")) {
+            String repoIdStr = body.get("repositoryId").toString();
+            entity.setRepositoryId(UUID.fromString(repoIdStr));
+            entity.setIndexingStatus("NOT_STARTED");
+        }
         return WorkspaceMapper.toDto(workspaceRepository.save(entity));
     }
 }

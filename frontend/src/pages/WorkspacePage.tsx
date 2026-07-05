@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWorkspace } from '@/hooks/useWorkspaces';
 import { useChatStream } from '@/hooks/useChatStream';
 import { RepositoryTree } from '@/features/repository/RepositoryTree';
@@ -7,8 +8,10 @@ import { ChatPanel } from '@/features/chat/ChatPanel';
 import { PlannerTimeline } from '@/features/planner/PlannerTimeline';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { cn } from '@/utils/cn';
-import { PanelLeftOpen, PanelRightOpen, GitBranch, ArrowLeft, MessageSquare } from 'lucide-react';
+import { PanelLeftOpen, PanelRightOpen, GitBranch, ArrowLeft, MessageSquare, Plus } from 'lucide-react';
 import conversationService from '@/services/conversation.service';
+import repositoryService from '@/services/repository.service';
+import workspaceService from '@/services/workspace.service';
 
 export default function WorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -16,8 +19,12 @@ export default function WorkspacePage() {
   const navigate = useNavigate();
   const conversationId = searchParams.get('conversation') ?? undefined;
 
+  const queryClient = useQueryClient();
   const { data: workspace, isLoading } = useWorkspace(id ?? '');
   const [conversations, setConversations] = useState<Array<{ id: string; title: string; messageCount: number }>>([]);
+  const [showAttachRepo, setShowAttachRepo] = useState(false);
+  const [repoUrl, setRepoUrl] = useState('');
+  const [attaching, setAttaching] = useState(false);
 
   const [showRepoPanel, setShowRepoPanel] = useState(true);
   const [showPlannerPanel, setShowPlannerPanel] = useState(true);
@@ -68,6 +75,22 @@ export default function WorkspacePage() {
     setShowNewChat(true);
   };
 
+  const handleAttachRepo = async () => {
+    if (!repoUrl.trim() || !id || !workspace) return;
+    setAttaching(true);
+    try {
+      const repo = await repositoryService.importRepository(repoUrl.trim());
+      await workspaceService.updateWorkspace(id, { repositoryId: repo.id });
+      await queryClient.invalidateQueries({ queryKey: ['workspace', id] });
+      setShowAttachRepo(false);
+      setRepoUrl('');
+    } catch (err) {
+      console.error('Failed to attach repo:', err);
+    } finally {
+      setAttaching(false);
+    }
+  };
+
   // When a new conversation is created via sendMessage, clear the "new chat" mode
   const handleSend = (prompt: string) => {
     setShowNewChat(false);
@@ -76,10 +99,13 @@ export default function WorkspacePage() {
 
   const handleBack = () => {
     if (conversationId) {
-      // Has a conversation open → go back to workspace root (no conversation)
+      // In a conversation → go back to conversation list
       setSearchParams({});
+    } else if (showNewChat) {
+      // In new chat → go back to conversation list
+      setShowNewChat(false);
     } else {
-      // No conversation → go back to dashboard
+      // On conversation list → go to dashboard
       navigate('/dashboard');
     }
   };
@@ -175,7 +201,7 @@ export default function WorkspacePage() {
               <PanelLeftOpen size={16} />
             </button>
           )}
-          {conversationId && (
+          {(conversationId || showNewChat) && (
             <button onClick={() => setShowConvPanel(v => !v)} className="text-gray-500 hover:text-gray-300 transition-colors" title="Conversations">
               <MessageSquare size={16} />
             </button>
@@ -185,12 +211,46 @@ export default function WorkspacePage() {
               {workspace.title}
             </h1>
           </div>
+          {!workspace.repositoryId && !showAttachRepo && (
+            <button
+              onClick={() => setShowAttachRepo(true)}
+              className="text-xs flex items-center gap-1 px-2 py-1 rounded bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 transition-colors"
+              title="Attach a repository"
+            >
+              <Plus size={12} /> Attach Repo
+            </button>
+          )}
           {!showPlannerPanel && (
             <button onClick={() => setShowPlannerPanel(true)} title="Show planner" className="text-gray-500 hover:text-gray-300 transition-colors">
               <PanelRightOpen size={16} />
             </button>
           )}
         </div>
+
+        {showAttachRepo && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-800 bg-gray-900/50">
+            <input
+              type="text"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo"
+              className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-600"
+            />
+            <button
+              onClick={handleAttachRepo}
+              disabled={attaching || !repoUrl.trim()}
+              className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors"
+            >
+              {attaching ? 'Importing...' : 'Attach'}
+            </button>
+            <button
+              onClick={() => { setShowAttachRepo(false); setRepoUrl(''); }}
+              className="text-xs px-2 py-1.5 text-gray-500 hover:text-gray-300"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         {!conversationId && !isStreaming && !showNewChat ? (
           /* No conversation selected — show conversation list */

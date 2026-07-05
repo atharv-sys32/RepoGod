@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -86,5 +87,15 @@ public class WorkspaceController {
     public ResponseEntity<ApiResponse<List<ConversationDto>>> getConversations(
             @PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(conversationService.getConversations(id)));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<WorkspaceDto>> update(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = resolveUserId(userDetails);
+        WorkspaceDto dto = workspaceService.update(id, userId, body);
+        return ResponseEntity.ok(ApiResponse.ok("Workspace updated", dto));
     }
 }

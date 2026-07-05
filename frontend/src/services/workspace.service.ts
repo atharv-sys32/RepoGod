@@ -49,7 +49,11 @@ const workspaceService = {
 
   async updateWorkspace(
     id: string,
-    patch: Partial<Pick<Workspace, 'title'>>,
+    patch: {
+      title?: string;
+      repositoryId?: string;
+      repositoryUrl?: string;
+    },
   ): Promise<Workspace> {
     const { data: res } = await api.patch<ApiResponse<Workspace>>(`/workspaces/${id}`, patch);
     return res.data;
