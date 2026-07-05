@@ -60,7 +60,8 @@ async def _event_stream(
 
             # Also forward the final response text as chunk events
             if event.event_type == "assistant_response" and event.message:
-                yield f"event: chunk\ndata: {json.dumps({'text': event.message})}\n\n"
+                data_line = json.dumps({"text": event.message})
+                yield f"event: chunk\ndata: {data_line}\n\n"
 
             await asyncio.sleep(0)  # yield control
 
