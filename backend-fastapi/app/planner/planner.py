@@ -219,7 +219,7 @@ class PlannerOrchestrator:
                 "mixed": "knowledge_tool",
             }
             # Smart tool routing based on query content
-            if any(w in query for w in ["commit", "commits", "git", "git log", "git_log", "history", "changelog", "changed"]):
+            if any(w in query for w in ["commit", "commits", "git", "git log", "git_log", "history", "changelog", "changed", "migration", "migrate"]):
                 chosen_tool = "git_log"
             elif any(w in query for w in ["test", "tests", "testing", "unittest", "pytest", "jest"]):
                 chosen_tool = "testing_tool"

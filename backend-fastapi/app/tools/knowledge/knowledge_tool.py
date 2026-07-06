@@ -177,18 +177,31 @@ class GitLogTool:
         storage = f"/app/repos/{repository_id}"
         llm = LLMService()
 
+        # Extract commit hash if the query references one (e.g. "commit abc123", "abc123 changed")
+        hash_match = re.search(r'\b([a-f0-9]{6,12})\b', query)
+        specific_hash = hash_match.group(0) if hash_match else None
+
+        # Check if query is about a specific commit or general history
+        is_specific_commit = bool(hash_match) or any(w in query.lower() for w in ["commit", "migration", "migrate", "changed in"])
+
         try:
-            result = subprocess.run(
-                ["git", "log", "--format=commit: %h%nauthor: %an%ndate: %ai%nsubject: %s%n---", "-30", "--all"],
-                cwd=storage,
-                capture_output=True,
-                text=True,
-                timeout=15,
-            )
-            log_output = result.stdout or result.stderr
-            # Truncate to fit free tier token limits
-            if len(log_output) > 4000:
-                log_output = log_output[:4000] + "\n...(truncated)"
+            if specific_hash and (len(specific_hash) >= 7 or "commit" in query.lower()):
+                # Show details for a specific commit
+                result = subprocess.run(
+                    ["git", "show", "--stat", "--format=commit: %h%nauthor: %an <%ae>%ndate: %ai%nsubject: %s%n", specific_hash],
+                    cwd=storage, capture_output=True, text=True, timeout=15,
+                )
+                log_output = result.stdout or result.stderr
+                if len(log_output) > 4000:
+                    log_output = log_output[:4000] + "\n...(truncated)"
+            else:
+                result = subprocess.run(
+                    ["git", "log", "--format=commit: %h%nauthor: %an%ndate: %ai%nsubject: %s%n---", "-30", "--all"],
+                    cwd=storage, capture_output=True, text=True, timeout=15,
+                )
+                log_output = result.stdout or result.stderr
+                if len(log_output) > 4000:
+                    log_output = log_output[:4000] + "\n...(truncated)"
         except Exception as e:
             log_output = f"Git log failed: {e}"
 
@@ -196,7 +209,7 @@ class GitLogTool:
         context_str = f"Git history:\n{log_output}"
 
         response = await llm.generate(
-            system_prompt="You are a git log analyst. For each commit show: short hash, author name, date, subject. Respect 'last N commits' if asked. Be specific about what changed.",
+            system_prompt="You are a git historian. If the user asks about a specific commit (by hash or description), explain what changed and why. If they ask about history in general, list commits with details. Reference files changed when available.",
             user_prompt=prompt,
             context=context_str,
         )
