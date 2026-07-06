@@ -117,11 +117,19 @@ const chatService = {
                   } catch { /* skip */ }
                   break;
                 case 'chunk':
-                  // Chunk data is JSON {"text": "..."} to avoid SSE newline issues
                   try {
                     const chunkData = JSON.parse(dataStr);
                     if (chunkData.text) {
                       handlers.onMessage?.(chunkData.text);
+                    } else if (chunkData.event_type) {
+                      const stepStatus: PlannerStepData['status'] =
+                        String(chunkData.event_type).endsWith('_start') ? 'running' :
+                        String(chunkData.status) === 'failed' ? 'error' : 'complete';
+                      handlers.onPlannerStep?.({
+                        stepId: String(chunkData.event_type) + '-' + Math.random().toString(36).slice(2, 6),
+                        toolName: String(chunkData.tool_name || 'planner'),
+                        status: stepStatus,
+                      });
                     }
                   } catch {
                     handlers.onMessage?.(dataStr);
