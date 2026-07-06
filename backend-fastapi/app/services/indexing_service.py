@@ -156,10 +156,15 @@ class IndexingService:
         if os.path.exists(local_path):
             # Re-use existing clone
             repo = git.Repo(local_path)
+            # Deepen if shallow
+            try:
+                repo.git.fetch("--deepen", "500")
+            except Exception:
+                pass
             repo.remotes.origin.pull()
         else:
             os.makedirs(local_path, exist_ok=True)
-            git.Repo.clone_from(git_url, local_path, depth=1)
+            git.Repo.clone_from(git_url, local_path, depth=500)
         return local_path
 
     def _discover_files(self, local_path: str) -> list[str]:
