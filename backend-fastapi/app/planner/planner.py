@@ -188,24 +188,42 @@ class PlannerOrchestrator:
         query = state.get("user_prompt", "")
         events = list(state.get("events", []))
         import json as _json
+        prev_context = state.get("previous_context", "")
+        ctx = f"\nPrevious conversation context: {prev_context[:200]}" if prev_context else ""
         try:
             response = await self._llm.generate(
-                system_prompt="Classify this request into one of: knowledge, review, testing, mixed. Reply ONLY with the JSON: {\"intent\": \"<type>\"}",
+                system_prompt=(
+                    "You classify codebase queries into tool categories. "
+                    "Available tools and when to use them:\n"
+                    "- git_log: questions about commits, git history, changelog, what changed\n"
+                    "- knowledge_tool: explain code, describe architecture, answer how/what/why questions\n"
+                    "- code_inspector: show file contents, inspect specific code, read source\n"
+                    "- documentation_reader: read README, docs, markdown\n"
+                    "- review_tool: review code, find bugs, security issues\n"
+                    "- testing_tool: generate tests\n"
+                    "- sequence_diagram_generator: draw sequence diagrams\n\n"
+                    "Consider the full conversation context, not just the latest message. "
+                    "A follow-up like 'tell me more about that commit' refers to the previously mentioned git commit.\n"
+                    "Reply ONLY with JSON: {\"tool\": \"<tool_name>\"}" + ctx
+                ),
                 user_prompt=query,
             )
             cleaned = re.sub(r"```(?:json)?\s*", "", response).strip()
             plan_data = _json.loads(cleaned)
-            intent = plan_data.get("intent", "knowledge")
+            intent = "mixed"  # We'll use the tool directly
+            forced_tool = plan_data.get("tool", "knowledge_tool")
         except Exception:
             intent = "knowledge"
+            forced_tool = None
 
         events.append(PlannerEvent(event_type="node_end", tool_name="detect_intent",
                                     status="completed", message=f"Intent: {intent}",
                                     data={"intent": intent}))
-        return {**state, "intent": intent, "_raw_plan": {}, "events": events}
+        return {**state, "intent": intent, "forced_tool": forced_tool, "_raw_plan": {}, "events": events}
 
     async def _node_plan(self, state: PlannerState) -> PlannerState:
         intent = state.get("intent", "knowledge")
+        forced_tool = state.get("forced_tool")
         raw_plan = state.get("_raw_plan", {})
         query = state.get("user_prompt", "").lower()
         events = list(state.get("events", []))
@@ -213,24 +231,12 @@ class PlannerOrchestrator:
             plan = raw_plan
         else:
             tool_map = {
-                "knowledge": "knowledge_tool",
+                "knowledge": forced_tool or "knowledge_tool",
                 "review": "review_tool",
                 "testing": "testing_tool",
-                "mixed": "knowledge_tool",
+                "mixed": forced_tool or "knowledge_tool",
             }
-            # Smart tool routing based on query content
-            if any(w in query for w in ["commit", "commits", "git", "git log", "git_log", "history", "changelog", "changed", "migration", "migrate"]):
-                chosen_tool = "git_log"
-            elif any(w in query for w in ["test", "tests", "testing", "unittest", "pytest", "jest"]):
-                chosen_tool = "testing_tool"
-            elif any(w in query for w in ["review", "bug", "bugs", "vulnerability", "security", "correctness"]):
-                chosen_tool = "review_tool"
-            elif any(w in query for w in ["readme", "documentation", "docs", "help"]):
-                chosen_tool = "documentation_reader"
-            elif any(w in query for w in ["inspect", "file", "code at", "show me"]):
-                chosen_tool = "code_inspector"
-            else:
-                chosen_tool = tool_map.get(intent, "knowledge_tool")
+            chosen_tool = tool_map.get(intent, forced_tool or "knowledge_tool")
 
             plan = {
                 "intent": intent,
@@ -238,7 +244,7 @@ class PlannerOrchestrator:
                     "step": 1,
                     "tool": chosen_tool,
                     "query": state.get("user_prompt", ""),
-                    "rationale": "Auto-routed based on query content",
+                    "rationale": "LLM-classified",
                 }],
             }
         events.append(PlannerEvent(event_type="node_end", tool_name="plan",
@@ -372,6 +378,7 @@ class PlannerOrchestrator:
             "execution_plan": {},
             "tool_outputs": [],
             "previous_context": "",
+            "forced_tool": None,
             "events": [],
             "current_step": 0,
             "error": None,

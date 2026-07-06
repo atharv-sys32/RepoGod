@@ -27,3 +27,4 @@ class PlannerState(TypedDict, total=False):
     current_step: int
     error: Optional[str]
     intent: str  # "knowledge" | "review" | "testing" | "mixed"
+    forced_tool: Optional[str]
