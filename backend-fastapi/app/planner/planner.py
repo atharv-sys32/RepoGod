@@ -180,6 +180,13 @@ class PlannerOrchestrator:
                 status="completed", message="Pipeline complete",
             )
 
+            # Close sub_query if this was a subsequent sub-query
+            if i > 0:
+                yield PlannerEvent(
+                    event_type="node_end", tool_name="sub_query",
+                    status="completed", message=f"Part {i+1} of {len(sub_queries)} completed",
+                )
+
     # ------------------------------------------------------------------
     # Graph nodes
     # ------------------------------------------------------------------
