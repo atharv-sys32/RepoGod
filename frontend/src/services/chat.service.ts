@@ -121,13 +121,13 @@ const chatService = {
                     const chunkData = JSON.parse(dataStr);
                     if (chunkData.text) {
                       handlers.onMessage?.(chunkData.text);
-                    } else if (chunkData.event_type) {
+                    } else if (chunkData.event_type && chunkData.tool_name) {
                       const stepStatus: PlannerStepData['status'] =
                         String(chunkData.event_type).endsWith('_start') ? 'running' :
                         String(chunkData.status) === 'failed' ? 'error' : 'complete';
                       handlers.onPlannerStep?.({
-                        stepId: String(chunkData.event_type) + '-' + Math.random().toString(36).slice(2, 6),
-                        toolName: String(chunkData.tool_name || 'planner'),
+                        stepId: String(chunkData.tool_name),
+                        toolName: String(chunkData.tool_name),
                         status: stepStatus,
                       });
                     }
@@ -156,7 +156,7 @@ const chatService = {
                         evType === 'done' ? 'complete' :
                         evStatus === 'failed' ? 'error' : 'complete';
                       const step: PlannerStepData = {
-                        stepId: `${evType}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                        stepId: stepToolName,
                         toolName: stepToolName,
                         status: stepStatus,
                       };
