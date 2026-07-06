@@ -207,6 +207,7 @@ class PlannerOrchestrator:
     async def _node_plan(self, state: PlannerState) -> PlannerState:
         intent = state.get("intent", "knowledge")
         raw_plan = state.get("_raw_plan", {})
+        query = state.get("user_prompt", "").lower()
         events = list(state.get("events", []))
         if raw_plan and "steps" in raw_plan:
             plan = raw_plan
@@ -217,13 +218,27 @@ class PlannerOrchestrator:
                 "testing": "testing_tool",
                 "mixed": "knowledge_tool",
             }
+            # Smart tool routing based on query content
+            if any(w in query for w in ["commit", "commits", "git", "git log", "git_log", "history", "changelog", "changed"]):
+                chosen_tool = "git_log"
+            elif any(w in query for w in ["test", "tests", "testing", "unittest", "pytest", "jest"]):
+                chosen_tool = "testing_tool"
+            elif any(w in query for w in ["review", "bug", "bugs", "vulnerability", "security", "correctness"]):
+                chosen_tool = "review_tool"
+            elif any(w in query for w in ["readme", "documentation", "docs", "help"]):
+                chosen_tool = "documentation_reader"
+            elif any(w in query for w in ["inspect", "file", "code at", "show me"]):
+                chosen_tool = "code_inspector"
+            else:
+                chosen_tool = tool_map.get(intent, "knowledge_tool")
+
             plan = {
                 "intent": intent,
                 "steps": [{
                     "step": 1,
-                    "tool": tool_map.get(intent, "knowledge_tool"),
+                    "tool": chosen_tool,
                     "query": state.get("user_prompt", ""),
-                    "rationale": "Single-step plan",
+                    "rationale": "Auto-routed based on query content",
                 }],
             }
         events.append(PlannerEvent(event_type="node_end", tool_name="plan",
