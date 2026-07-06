@@ -17,6 +17,7 @@ class PlannerState(TypedDict, total=False):
     retrieved_context: str
     execution_plan: dict[str, Any]
     tool_outputs: list[dict[str, Any]]
+    previous_context: str
 
     # Outputs
     final_response: str

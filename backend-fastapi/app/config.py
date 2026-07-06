@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     LOCAL_EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_DIM: int = 384
     CHUNK_SIZE: int = 1500
-    RETRIEVAL_DEPTH: int = 10
+    RETRIEVAL_DEPTH: int = 15
+    MAX_CONTEXT_CHARS: int = 8000
     REPO_STORAGE_PATH: str = "/app/repos"
 
     class Config:

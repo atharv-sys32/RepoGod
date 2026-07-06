@@ -137,6 +137,39 @@ class ContextRetriever:
             for n in nodes
         ]
 
+    async def get_file_chunks(
+        self,
+        repository_id: uuid.UUID,
+        file_path: str,
+        db_session: AsyncSession,
+    ) -> list[RetrievedChunk]:
+        """Get more chunks from a specific file for deeper context."""
+        stmt = text(
+            """
+            SELECT content, file_path, symbol_name, start_line, end_line, language
+            FROM embeddings
+            WHERE repository_id = CAST(:repo_id AS uuid)
+              AND file_path = :fpath
+            ORDER BY start_line
+            LIMIT 10
+            """
+        ).bindparams(repo_id=str(repository_id), fpath=file_path)
+        result = await db_session.execute(stmt)
+        rows = result.fetchall()
+        return [
+            RetrievedChunk(
+                content=row.content,
+                file_path=row.file_path,
+                symbol_name=row.symbol_name,
+                start_line=row.start_line or 0,
+                end_line=row.end_line or 0,
+                language=row.language,
+                score=0.9,
+                source="file_expansion",
+            )
+            for row in rows
+        ]
+
     async def get_dependencies(
         self,
         symbol_name: str,

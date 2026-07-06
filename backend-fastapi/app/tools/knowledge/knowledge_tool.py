@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.context_engine.engine import ContextEngine
 from app.llm.llm_service import LLMService
-from app.prompts.templates import KNOWLEDGE_SYSTEM_PROMPT
 from app.tools import ToolOutput
 
 
@@ -36,8 +35,13 @@ class KnowledgeTool:
             await db_session.rollback()
             retrieved_context = ""
 
+        if len(retrieved_context) > 6000:
+            retrieved_context = retrieved_context[:6000] + "
+
+[Context truncated — showing most relevant sections]"
+
         response_md = await llm.generate(
-            system_prompt=KNOWLEDGE_SYSTEM_PROMPT,
+            system_prompt=ContextEngine.get_system_prompt("knowledge_tool", query),
             user_prompt=query,
             context=retrieved_context,
         )
@@ -81,8 +85,6 @@ class CodeInspectorTool:
         repository_id: uuid.UUID = context["repository_id"]
         llm = LLMService()
 
-        # Get files matching the query from repository_files table
-        search = f"%{query.split()[-1]}%" if query.split() else "%"
         try:
             result = await db_session.execute(
                 text("SELECT file_path, path FROM repository_files WHERE repository_id = :repo_id ORDER BY file_path LIMIT 15"),
@@ -92,27 +94,23 @@ class CodeInspectorTool:
         except Exception:
             rows = []
 
-        if rows:
-            # Read file contents from disk
-            storage = f"/app/repos/{repository_id}"
-            snippets = []
-            for row in rows:
-                fpath = row.file_path or row.path
-                full_path = os.path.join(storage, fpath)
-                if os.path.isfile(full_path):
-                    try:
-                        with open(full_path, "r", encoding="utf-8", errors="replace") as f:
-                            content = f.read(3000)
-                        snippets.append(f"### {fpath}\n```\n{content}\n```")
-                    except OSError:
-                        pass
+        storage = f"/app/repos/{repository_id}"
+        snippets = []
+        for row in rows:
+            fpath = row.file_path or row.path
+            full_path = os.path.join(storage, fpath)
+            if os.path.isfile(full_path):
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                        content = f.read(3000)
+                    snippets.append(f"### {fpath}\n```\n{content}\n```")
+                except OSError:
+                    pass
 
-            context_str = "\n\n".join(snippets) if snippets else "No files could be read."
-        else:
-            context_str = "No matching files found."
+        context_str = "\n\n".join(snippets) if snippets else "No matching files found."
 
         response = await llm.generate(
-            system_prompt="You are a code inspector. Read the code files below and answer the query. Reference specific files and line numbers.",
+            system_prompt="You are a code inspector. Read the code below and answer the query. Reference specific files and line numbers.",
             user_prompt=query,
             context=context_str,
         )
@@ -136,7 +134,6 @@ class DocumentationReaderTool:
         repository_id: uuid.UUID = context["repository_id"]
         storage = f"/app/repos/{repository_id}"
 
-        # Find doc files
         doc_files = []
         if os.path.isdir(storage):
             for root, dirs, files in os.walk(storage):
@@ -184,21 +181,21 @@ class GitLogTool:
 
         try:
             result = subprocess.run(
-                ["git", "log", "--oneline", "--graph", "-30", "--all"],
+                ["git", "log", "--format=commit: %H%nauthor: %an <%ae>%ndate: %ai%nsubject: %s%n---", "--shortstat", "-200", "--all"],
                 cwd=storage,
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=15,
             )
             log_output = result.stdout or result.stderr
         except Exception as e:
             log_output = f"Git log failed: {e}"
 
-        prompt = f"Summarize the recent git history:\n\n{log_output}\n\nQuery: {query}"
-        context_str = f"Recent commits ({len(log_output.split(chr(10)))} lines):\n{log_output[:5000]}"
+        prompt = f"Git history data:\n\n{log_output}\n\nUser query: {query}"
+        context_str = f"Git history ({len(log_output.split(chr(10)))} lines):\n{log_output[:12000]}"
 
         response = await llm.generate(
-            system_prompt="You summarize git commit history. Focus on what changed, who changed it, and the overall pattern of recent work.",
+            system_prompt="You are a git log analyst. For each commit show: short hash, author name, date, subject. Respect 'last N commits' if asked. Be specific about what changed.",
             user_prompt=prompt,
             context=context_str,
         )
