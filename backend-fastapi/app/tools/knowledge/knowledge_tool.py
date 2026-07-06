@@ -36,9 +36,7 @@ class KnowledgeTool:
             retrieved_context = ""
 
         if len(retrieved_context) > 6000:
-            retrieved_context = retrieved_context[:6000] + "
-
-[Context truncated — showing most relevant sections]"
+            retrieved_context = retrieved_context[:6000] + "\n\n[Context truncated]"
 
         response_md = await llm.generate(
             system_prompt=ContextEngine.get_system_prompt("knowledge_tool", query),
