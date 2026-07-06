@@ -179,18 +179,21 @@ class GitLogTool:
 
         try:
             result = subprocess.run(
-                ["git", "log", "--format=commit: %H%nauthor: %an <%ae>%ndate: %ai%nsubject: %s%n---", "--shortstat", "-200", "--all"],
+                ["git", "log", "--format=commit: %h%nauthor: %an%ndate: %ai%nsubject: %s%n---", "-30", "--all"],
                 cwd=storage,
                 capture_output=True,
                 text=True,
                 timeout=15,
             )
             log_output = result.stdout or result.stderr
+            # Truncate to fit free tier token limits
+            if len(log_output) > 4000:
+                log_output = log_output[:4000] + "\n...(truncated)"
         except Exception as e:
             log_output = f"Git log failed: {e}"
 
         prompt = f"Git history data:\n\n{log_output}\n\nUser query: {query}"
-        context_str = f"Git history ({len(log_output.split(chr(10)))} lines):\n{log_output[:12000]}"
+        context_str = f"Git history:\n{log_output}"
 
         response = await llm.generate(
             system_prompt="You are a git log analyst. For each commit show: short hash, author name, date, subject. Respect 'last N commits' if asked. Be specific about what changed.",

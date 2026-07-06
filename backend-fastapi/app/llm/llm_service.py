@@ -42,9 +42,10 @@ class LLMService:
                 )
                 return response.choices[0].message.content or ""
             except BadRequestError as e:
-                if "rate_limit" in str(e).lower() or "429" in str(e):
+                err_lower = str(e).lower()
+                if any(x in err_lower for x in ["rate_limit", "429", "413", "too large"]):
                     wait = _BASE_DELAY * (attempt + 1)
-                    print(f"[LLM] Groq rate limited, waiting {wait}s (attempt {attempt+1}/{_MAX_RETRIES})", flush=True)
+                    print(f"[LLM] Groq limit hit, waiting {wait}s (attempt {attempt+1}/{_MAX_RETRIES})", flush=True)
                     await asyncio.sleep(wait)
                 else:
                     raise
@@ -76,9 +77,10 @@ class LLMService:
                         yield text
                 return
             except BadRequestError as e:
-                if "rate_limit" in str(e).lower() or "429" in str(e):
+                err_lower = str(e).lower()
+                if any(x in err_lower for x in ["rate_limit", "429", "413", "too large"]):
                     wait = _BASE_DELAY * (attempt + 1)
-                    print(f"[LLM] Groq rate limited, waiting {wait}s (attempt {attempt+1}/{_MAX_RETRIES})", flush=True)
+                    print(f"[LLM] Groq limit hit, waiting {wait}s (attempt {attempt+1}/{_MAX_RETRIES})", flush=True)
                     await asyncio.sleep(wait)
                 else:
                     raise
