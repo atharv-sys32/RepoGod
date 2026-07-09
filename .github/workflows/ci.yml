@@ -90,3 +90,19 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    needs: [backend-spring, backend-fastapi, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH into EC2 and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/repogod
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
